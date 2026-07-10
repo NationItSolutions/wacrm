@@ -215,7 +215,9 @@ export type ContentType =
   | 'location'
   | 'template'
   /** Customer tapped a reply button or list row on a message we sent. */
-  | 'interactive';
+  | 'interactive'
+  /** A WhatsApp sticker (.webp). Sent/received via the Evolution provider. */
+  | 'sticker';
 export type MessageStatus = 'sending' | 'sent' | 'delivered' | 'read' | 'failed';
 
 export interface Message {
@@ -252,6 +254,13 @@ export interface Message {
    * badge in the inbox. Migration 033.
    */
   ai_generated?: boolean;
+  /**
+   * Set when the message was deleted-for-everyone (Evolution provider,
+   * migration 036). The row is kept for audit; the thread renders it as
+   * "message deleted". Both an agent-initiated delete and an inbound
+   * revoke event set this.
+   */
+  deleted_at?: string | null;
 }
 
 export type ReactionActor = 'customer' | 'agent';
@@ -266,13 +275,32 @@ export interface MessageReaction {
   created_at: string;
 }
 
+export type WhatsAppProviderId = 'meta' | 'evolution';
+
 export interface WhatsAppConfig {
   id: string;
   user_id: string;
-  phone_number_id: string;
+  account_id?: string;
+  /** Which backend this account talks to. Defaults to 'meta'. Migration 036. */
+  provider: WhatsAppProviderId;
+  // --- Meta Cloud API (provider === 'meta') ---
+  phone_number_id?: string;
   waba_id?: string;
-  access_token: string;
+  access_token?: string;
   verify_token?: string;
+  // --- Evolution API (provider === 'evolution', migration 036) ---
+  /** Base URL of the remote Evolution API server. */
+  base_url?: string;
+  /** The Evolution instance name this account is bound to. */
+  instance_name?: string;
+  /** AES-256-GCM-encrypted Evolution api key (global or instance token). */
+  api_key?: string;
+  /** Last known Evolution connection state: open | connecting | close. */
+  evolution_state?: string;
+  /** Transient base64 QR image for the connect flow. */
+  qr_code?: string;
+  /** Unguessable path segment routing the Evolution inbound webhook. */
+  webhook_secret?: string;
   status: 'connected' | 'disconnected';
   connected_at?: string;
   /**
@@ -285,6 +313,17 @@ export interface WhatsAppConfig {
   subscribed_apps_at?: string;
   /** Last error from /register; cleared on success. */
   last_registration_error?: string;
+}
+
+/** A saved sticker in the per-account library (migration 036). */
+export interface Sticker {
+  id: string;
+  account_id: string;
+  user_id?: string;
+  /** Public URL in the chat-media bucket (.webp). */
+  media_url: string;
+  mime?: string;
+  created_at: string;
 }
 
 // Raw Meta status enum. We persist this verbatim from Meta (sync + webhook)

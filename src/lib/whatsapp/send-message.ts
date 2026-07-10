@@ -21,14 +21,9 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 
-import {
-  sendTextMessage,
-  sendTemplateMessage,
-  sendMediaMessage,
-  sendInteractiveButtons,
-  sendInteractiveList,
-  type MediaKind,
-} from '@/lib/whatsapp/meta-api';
+import { type MediaKind } from '@/lib/whatsapp/meta-api';
+import { getProvider } from '@/lib/whatsapp/providers';
+import type { ReplyRef } from '@/lib/whatsapp/providers/types';
 import {
   validateInteractivePayload,
   interactivePayloadPreviewText,
@@ -262,13 +257,17 @@ export async function sendMessageToConversation(
     );
   }
 
-  const accessToken = decrypt(config.access_token);
-
-  // Self-heal legacy CBC ciphertexts. Fire-and-forget; idempotent.
-  if (isLegacyFormat(config.access_token)) {
+  // Self-heal legacy CBC ciphertexts on the Meta access token.
+  // Fire-and-forget; idempotent. Evolution rows have no access_token —
+  // their credential (api_key) is decrypted inside getProvider().
+  if (
+    (config.provider ?? 'meta') === 'meta' &&
+    config.access_token &&
+    isLegacyFormat(config.access_token)
+  ) {
     void db
       .from('whatsapp_config')
-      .update({ access_token: encrypt(accessToken) })
+      .update({ access_token: encrypt(decrypt(config.access_token)) })
       .eq('id', config.id)
       .then(({ error }: { error: { message: string } | null }) => {
         if (error) {
@@ -280,14 +279,16 @@ export async function sendMessageToConversation(
       });
   }
 
-  // Resolve the reply target to its Meta message_id. The parent must
-  // belong to this same conversation — otherwise a caller could quote
-  // messages they can't see by guessing UUIDs.
-  let contextMessageId: string | undefined;
+  // Resolve the reply target to its provider message id. The parent
+  // must belong to this same conversation — otherwise a caller could
+  // quote messages they can't see by guessing UUIDs. We also capture
+  // whether *we* sent the parent (`fromMe`), which the Evolution
+  // provider needs to reconstruct the quoted key (Meta ignores it).
+  let replyRef: ReplyRef | undefined;
   if (replyToMessageId) {
     const { data: parent, error: parentError } = await db
       .from('messages')
-      .select('message_id, conversation_id')
+      .select('message_id, conversation_id, sender_type')
       .eq('id', replyToMessageId)
       .eq('conversation_id', conversationId)
       .maybeSingle();
@@ -301,12 +302,17 @@ export async function sendMessageToConversation(
     }
     if (!parent.message_id) {
       console.warn(
-        '[send-message] reply target has no Meta message_id; sending without context'
+        '[send-message] reply target has no provider message_id; sending without context'
       );
     } else {
-      contextMessageId = parent.message_id;
+      replyRef = {
+        providerMessageId: parent.message_id,
+        fromMe: parent.sender_type !== 'customer',
+      };
     }
   }
+
+  const provider = getProvider(config);
 
   // Template row (for header + button components). isMessageTemplate
   // guards against a malformed local row crashing the send-builder.
@@ -331,66 +337,63 @@ export async function sendMessageToConversation(
 
   const attempt = async (phone: string): Promise<string> => {
     if (messageType === 'template') {
-      const result = await sendTemplateMessage({
-        phoneNumberId: config.phone_number_id,
-        accessToken,
+      if (!provider.capabilities.supportsTemplates || !provider.sendTemplate) {
+        throw new SendMessageError(
+          'template_unsupported',
+          'Message templates are only available with the Meta provider.',
+          400
+        );
+      }
+      const result = await provider.sendTemplate({
         to: phone,
         templateName: templateName!,
         language: templateLanguage || 'en_US',
         template: templateRow ?? undefined,
         messageParams: templateMessageParams ?? undefined,
         params: templateParams || [],
-        contextMessageId,
+        replyTo: replyRef,
       });
       return result.messageId;
     }
     if (isMediaKind) {
-      const result = await sendMediaMessage({
-        phoneNumberId: config.phone_number_id,
-        accessToken,
+      const result = await provider.sendMedia({
         to: phone,
         kind: messageType as MediaKind,
         link: mediaUrl!,
         caption: contentText || undefined,
         filename: filename || undefined,
-        contextMessageId,
+        replyTo: replyRef,
       });
       return result.messageId;
     }
     if (messageType === 'interactive') {
       const p = interactivePayload!;
       if (p.kind === 'buttons') {
-        const result = await sendInteractiveButtons({
-          phoneNumberId: config.phone_number_id,
-          accessToken,
+        const result = await provider.sendInteractiveButtons({
           to: phone,
           bodyText: p.body,
           headerText: p.header || undefined,
           footerText: p.footer || undefined,
           buttons: p.buttons,
-          contextMessageId,
+          replyTo: replyRef,
         });
         return result.messageId;
       }
-      const result = await sendInteractiveList({
-        phoneNumberId: config.phone_number_id,
-        accessToken,
+      const result = await provider.sendInteractiveList({
         to: phone,
         bodyText: p.body,
         buttonLabel: p.button_label,
         headerText: p.header || undefined,
         footerText: p.footer || undefined,
         sections: p.sections,
-        contextMessageId,
+        replyTo: replyRef,
       });
       return result.messageId;
     }
-    const result = await sendTextMessage({
-      phoneNumberId: config.phone_number_id,
-      accessToken,
+    const result = await provider.sendText({
       to: phone,
       text: contentText!,
-      contextMessageId,
+      replyTo: replyRef,
     });
     return result.messageId;
   };

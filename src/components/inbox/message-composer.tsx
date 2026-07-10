@@ -22,7 +22,14 @@ import {
   Plus,
   MessageSquareDashed,
   Zap,
+  Sticker as StickerIcon,
 } from "lucide-react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { GatedButton } from "@/components/ui/gated-button";
 import {
@@ -169,6 +176,93 @@ export function MessageComposer({
   useEffect(() => {
     draftRef.current = draft;
   }, [draft]);
+
+  // Stickers are Evolution-only. Fetch the provider once to decide whether
+  // to show the sticker button + picker.
+  const [supportsStickers, setSupportsStickers] = useState(false);
+  const [stickerOpen, setStickerOpen] = useState(false);
+  const [stickers, setStickers] = useState<{ id: string; media_url: string }[]>([]);
+  const [stickerBusy, setStickerBusy] = useState(false);
+  const stickerInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("account_id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (!profile?.account_id) return;
+      const { data: cfg } = await supabase
+        .from("whatsapp_config")
+        .select("provider")
+        .eq("account_id", profile.account_id)
+        .maybeSingle();
+      if (!cancelled) setSupportsStickers(cfg?.provider === "evolution");
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const loadStickers = useCallback(async () => {
+    try {
+      const res = await fetch("/api/whatsapp/stickers");
+      const j = await res.json();
+      setStickers(j.stickers ?? []);
+    } catch {
+      /* best-effort */
+    }
+  }, []);
+
+  const sendSticker = useCallback(
+    async (url: string) => {
+      setStickerBusy(true);
+      try {
+        const res = await fetch("/api/whatsapp/stickers", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ conversation_id: conversationId, sticker_url: url }),
+        });
+        if (!res.ok) {
+          const j = await res.json().catch(() => ({}));
+          toast.error(j.error || "Failed to send sticker");
+          return;
+        }
+        setStickerOpen(false);
+      } catch {
+        toast.error("Failed to send sticker");
+      } finally {
+        setStickerBusy(false);
+      }
+    },
+    [conversationId],
+  );
+
+  const handleStickerFile = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      e.target.value = "";
+      if (!file) return;
+      setStickerBusy(true);
+      try {
+        const { publicUrl } = await uploadAccountMedia(CHAT_MEDIA_BUCKET, file);
+        await sendSticker(publicUrl);
+        void loadStickers();
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Upload failed");
+      } finally {
+        setStickerBusy(false);
+      }
+    },
+    [sendSticker, loadStickers],
+  );
 
   // Best-effort GC of a staged object the user never sent. Fire-and-forget.
   const removeStaged = useCallback((path: string | undefined) => {
@@ -565,6 +659,13 @@ export function MessageComposer({
 
       {/* Hidden file inputs driven by the attach menu. */}
       <input
+        ref={stickerInputRef}
+        type="file"
+        accept="image/webp,image/png"
+        className="hidden"
+        onChange={handleStickerFile}
+      />
+      <input
         ref={imageInputRef}
         type="file"
         accept={PICKER_ACCEPT.image}
@@ -668,6 +769,68 @@ export function MessageComposer({
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+
+          {/* Sticker picker — Evolution only. Shows the account's saved
+              sticker library; clicking one sends it. */}
+          {supportsStickers && (
+            <Popover
+              open={stickerOpen}
+              onOpenChange={(o) => {
+                setStickerOpen(o);
+                if (o) void loadStickers();
+              }}
+            >
+              <PopoverTrigger
+                disabled={inputsDisabled}
+                title="Sticker"
+                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md p-0 text-muted-foreground hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {stickerBusy ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <StickerIcon className="h-4 w-4" />
+                )}
+              </PopoverTrigger>
+              <PopoverContent align="start" className="w-72">
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="text-sm font-medium">Stickers</span>
+                  <button
+                    type="button"
+                    onClick={() => stickerInputRef.current?.click()}
+                    className="text-xs text-primary hover:underline disabled:opacity-50"
+                    disabled={stickerBusy}
+                  >
+                    Upload .webp
+                  </button>
+                </div>
+                {stickers.length === 0 ? (
+                  <p className="py-6 text-center text-xs text-muted-foreground">
+                    No saved stickers yet. Received stickers appear here, or
+                    upload a .webp.
+                  </p>
+                ) : (
+                  <div className="grid max-h-64 grid-cols-4 gap-2 overflow-y-auto">
+                    {stickers.map((s) => (
+                      <button
+                        key={s.id}
+                        type="button"
+                        disabled={stickerBusy}
+                        onClick={() => void sendSticker(s.media_url)}
+                        className="rounded-md p-1 hover:bg-muted disabled:opacity-50"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={s.media_url}
+                          alt="sticker"
+                          className="size-14 object-contain"
+                        />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </PopoverContent>
+            </Popover>
+          )}
 
           {/* + menu — interactive messages + quick replies. Gated on the
               24h window like free-form text (interactive requires it). */}

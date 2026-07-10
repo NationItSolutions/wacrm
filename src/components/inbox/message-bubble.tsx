@@ -120,7 +120,28 @@ function MediaImage({ url, alt }: { url: string; alt: string }) {
 }
 
 function MessageContent({ message, t }: { message: Message, t: ReturnType<typeof useTranslations> }) {
+  // Deleted-for-everyone (Evolution): render a tombstone regardless of
+  // the original content type.
+  if (message.deleted_at) {
+    return (
+      <p className="whitespace-pre-wrap break-words text-sm italic text-muted-foreground">
+        🚫 This message was deleted
+      </p>
+    );
+  }
   switch (message.content_type) {
+    case "sticker":
+      return message.media_url ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={message.media_url}
+          alt="Sticker"
+          className="size-32 object-contain"
+        />
+      ) : (
+        <MediaUnavailable label="Sticker" t={t} />
+      );
+
     case "text":
       return (
         <p className="whitespace-pre-wrap break-words text-sm">

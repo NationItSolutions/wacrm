@@ -1,12 +1,13 @@
 "use client";
 
-import { Check, Moon, Palette, SunMoon, Sun } from "lucide-react";
+import { Check, Languages, Moon, Palette, SunMoon, Sun } from "lucide-react";
 
 import { useTheme } from "@/hooks/use-theme";
 import { MODES, THEMES, type Mode, type ThemeId } from "@/lib/themes";
 import { cn } from "@/lib/utils";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { SettingsPanelHead } from "./settings-panel-head";
+import { SUPPORTED_LOCALES, LOCALE_LABELS, LOCALE_COOKIE } from "@/i18n/locales";
 
 /**
  * Appearance panel — light/dark mode + accent-color picker.
@@ -23,6 +24,7 @@ import { SettingsPanelHead } from "./settings-panel-head";
 export function AppearancePanel() {
   const { theme, setTheme, mode, setMode } = useTheme();
   const t = useTranslations("Settings.appearance");
+  const activeLocale = useLocale();
 
   return (
     <section className="max-w-3xl animate-in fade-in-50 duration-200">
@@ -73,7 +75,58 @@ export function AppearancePanel() {
           ))}
         </div>
       </div>
+
+      <div className="mt-8 space-y-4">
+        <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground">
+          <Languages className="size-4 text-muted-foreground" />
+          Language / Idioma
+        </h3>
+        <div className="grid max-w-md grid-cols-1 gap-3 sm:grid-cols-2">
+          {SUPPORTED_LOCALES.map((loc) => (
+            <LanguageCard
+              key={loc}
+              label={LOCALE_LABELS[loc] ?? loc}
+              isActive={loc === activeLocale}
+              onPick={() => {
+                document.cookie = `${LOCALE_COOKIE}=${loc}; path=/; max-age=31536000; samesite=lax`;
+                window.location.reload();
+              }}
+            />
+          ))}
+        </div>
+      </div>
     </section>
+  );
+}
+
+function LanguageCard({
+  label,
+  isActive,
+  onPick,
+}: {
+  label: string;
+  isActive: boolean;
+  onPick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onPick}
+      aria-pressed={isActive}
+      className={cn(
+        "flex items-center justify-between gap-3 rounded-lg border bg-card p-4 text-left text-sm font-semibold text-foreground transition-colors",
+        isActive
+          ? "border-primary/60 ring-2 ring-primary/40"
+          : "border-border hover:bg-muted/40",
+      )}
+    >
+      <span>{label}</span>
+      {isActive && (
+        <span className="inline-flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-[11px] font-medium text-primary">
+          <Check className="h-3 w-3" />
+        </span>
+      )}
+    </button>
   );
 }
 

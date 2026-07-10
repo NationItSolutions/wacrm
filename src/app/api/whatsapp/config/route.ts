@@ -87,7 +87,7 @@ export async function GET() {
 
     const { data: config, error: configError } = await supabase
       .from('whatsapp_config')
-      .select('phone_number_id, access_token, status')
+      .select('provider, phone_number_id, access_token, status, evolution_state')
       .eq('account_id', accountId)
       .maybeSingle()
 
@@ -97,6 +97,19 @@ export async function GET() {
         { connected: false, reason: 'db_error', message: 'Failed to fetch configuration' },
         { status: 200 }
       )
+    }
+
+    // Evolution provider: health is the instance connection state, not a
+    // Meta credential check. The Evolution settings UI polls
+    // /api/whatsapp/evolution/state for live status; here we just report
+    // the stored state so the generic config check doesn't hit Meta.
+    if (config && config.provider === 'evolution') {
+      return NextResponse.json({
+        connected: config.status === 'connected',
+        provider: 'evolution',
+        reason: 'evolution',
+        evolution_state: config.evolution_state ?? 'unknown',
+      })
     }
 
     if (!config) {

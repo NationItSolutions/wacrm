@@ -226,8 +226,62 @@ export function MessageThread({
     };
   }, []);
 
+  // The 24-hour customer-service window is a Meta Cloud API rule. The
+  // Evolution provider has no such restriction, so we fetch the account's
+  // provider once and skip the window entirely when it's Evolution.
+  const [has24hWindow, setHas24hWindow] = useState(true);
+  // delete-for-everyone is Evolution-only.
+  const [supportsDelete, setSupportsDelete] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("account_id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (!profile?.account_id) return;
+      const { data: cfg } = await supabase
+        .from("whatsapp_config")
+        .select("provider")
+        .eq("account_id", profile.account_id)
+        .maybeSingle();
+      if (cancelled) return;
+      const isEvolution = cfg?.provider === "evolution";
+      setHas24hWindow(!isEvolution);
+      setSupportsDelete(isEvolution);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleDeleteMessage = useCallback(async (msg: Message) => {
+    if (!window.confirm("Delete this message for everyone?")) return;
+    try {
+      const res = await fetch(`/api/whatsapp/messages/${msg.id}/delete`, {
+        method: "POST",
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        toast.error(j.error || "Failed to delete message");
+        return;
+      }
+      toast.success("Message deleted");
+      // The soft-delete UPDATE round-trips via realtime and flips the bubble.
+    } catch {
+      toast.error("Failed to delete message");
+    }
+  }, []);
+
   // 24-hour session timer
   const sessionInfo = useMemo(() => {
+    if (!has24hWindow) return { expired: false, remaining: "" };
     if (!messages.length) return { expired: false, remaining: "" };
 
     // Find last customer message
@@ -251,7 +305,7 @@ export function MessageThread({
         : tTimer("xmRemaining", { minutes: Math.floor(hoursLeft * 60) });
 
     return { expired, remaining };
-  }, [messages, tTimer]);
+  }, [messages, tTimer, has24hWindow]);
 
   // Store latest callback in a ref so fetchMessages doesn't need to
   // depend on `onMessagesLoaded` — otherwise parent re-renders cause
@@ -1115,6 +1169,11 @@ export function MessageThread({
                         onReact={(emoji) => {
                           if (emoji) void postReaction(msg.id, emoji);
                         }}
+                        onDelete={
+                          supportsDelete && msg.message_id && !msg.deleted_at
+                            ? () => void handleDeleteMessage(msg)
+                            : undefined
+                        }
                       >
                         <MessageBubble
                           message={msg}

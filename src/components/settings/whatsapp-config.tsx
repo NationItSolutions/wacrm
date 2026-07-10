@@ -30,6 +30,7 @@ import {
   AccordionContent,
 } from '@/components/ui/accordion';
 import type { WhatsAppConfig as WhatsAppConfigType } from '@/types';
+import { EvolutionConfig } from './evolution-config';
 
 const MASKED_TOKEN = '••••••••••••••••';
 
@@ -63,6 +64,10 @@ export function WhatsAppConfig() {
   // again and overwrites whatever the user typed but hadn't saved yet.
   const loadedAccountIdRef = useRef<string | null>(null);
 
+  // Which backend this account uses. Defaults to Meta; synced from the
+  // loaded config below. The selector lets an admin switch providers.
+  const [provider, setProvider] = useState<'meta' | 'evolution'>('meta');
+
   const [phoneNumberId, setPhoneNumberId] = useState('');
   const [wabaId, setWabaId] = useState('');
   const [accessToken, setAccessToken] = useState('');
@@ -93,6 +98,13 @@ export function WhatsAppConfig() {
     typeof window !== 'undefined'
       ? `${window.location.origin}/api/whatsapp/webhook`
       : '';
+
+  // Adopt the saved provider whenever the loaded config's provider
+  // changes (initial load + after a save reload). Doesn't fight a manual
+  // switch: config.provider only changes on load/save, not on selection.
+  useEffect(() => {
+    if (config?.provider) setProvider(config.provider);
+  }, [config?.provider]);
 
   const fetchConfig = useCallback(async (acctId: string) => {
     setLoading(true);
@@ -393,6 +405,36 @@ export function WhatsAppConfig() {
         title={t("title")}
         description={t("description")}
       />
+
+      {/* Provider selector — Meta Cloud API vs a self-hosted Evolution API. */}
+      <div className="mb-6 inline-flex rounded-lg border border-border p-1">
+        <button
+          type="button"
+          onClick={() => setProvider('meta')}
+          className={`rounded-md px-4 py-1.5 text-sm font-medium transition ${
+            provider === 'meta'
+              ? 'bg-primary text-primary-foreground'
+              : 'text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          Meta Cloud API
+        </button>
+        <button
+          type="button"
+          onClick={() => setProvider('evolution')}
+          className={`rounded-md px-4 py-1.5 text-sm font-medium transition ${
+            provider === 'evolution'
+              ? 'bg-primary text-primary-foreground'
+              : 'text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          Evolution API
+        </button>
+      </div>
+
+      {provider === 'evolution' ? (
+        <EvolutionConfig accountId={accountId ?? null} />
+      ) : (
       <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
       {/* Main config form */}
       <div className="space-y-6">
@@ -835,6 +877,7 @@ export function WhatsAppConfig() {
         </Card>
       </div>
     </div>
+      )}
     </section>
   );
 }
