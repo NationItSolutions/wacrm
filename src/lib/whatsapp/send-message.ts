@@ -22,7 +22,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 import { type MediaKind } from '@/lib/whatsapp/meta-api';
-import { getProvider } from '@/lib/whatsapp/providers';
+import { getProvider, getProviderId } from '@/lib/whatsapp/providers';
 import type { ReplyRef } from '@/lib/whatsapp/providers/types';
 import {
   validateInteractivePayload,
@@ -324,6 +324,9 @@ export async function sendMessageToConversation(
       .eq('account_id', accountId)
       .eq('name', templateName)
       .eq('language', templateLanguage || 'en_US')
+      // Scope to the active provider so an Evolution send never grabs a
+      // stale Meta row of the same name (and vice versa).
+      .eq('provider', getProviderId(config))
       .maybeSingle();
     if (data && !isMessageTemplate(data)) {
       throw new SendMessageError(
@@ -333,6 +336,16 @@ export async function sendMessageToConversation(
       );
     }
     templateRow = data ?? null;
+
+    // Evolution renders the template locally — without the row there is
+    // nothing to send. (Meta can still send by name via the API.)
+    if (!templateRow && getProviderId(config) === 'evolution') {
+      throw new SendMessageError(
+        'template_not_found',
+        'Evolution template not found — create it in Settings → Templates.',
+        404
+      );
+    }
   }
 
   const attempt = async (phone: string): Promise<string> => {

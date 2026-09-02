@@ -19,6 +19,7 @@ import {
   MEDIA_MAX_BYTES_BY_KIND,
 } from '@/lib/storage/upload-media';
 import { useAuth } from '@/hooks/use-auth';
+import { useWhatsAppProvider } from '@/hooks/use-whatsapp-provider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -128,6 +129,8 @@ export function TemplateManager() {
   const t = useTranslations('Settings.templates');
   const supabase = createClient();
   const { user, loading: authLoading } = useAuth();
+  // Evolution templates are local-only (no Meta approval / sync / samples).
+  const { isEvolution } = useWhatsAppProvider();
 
   const [loading, setLoading] = useState(true);
   const [templates, setTemplates] = useState<MessageTemplate[]>([]);
@@ -185,7 +188,7 @@ export function TemplateManager() {
     }
     fetchTemplates(user.id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authLoading, user?.id]);
+  }, [authLoading, user?.id, isEvolution]);
 
   async function fetchTemplates(userId: string) {
     try {
@@ -194,6 +197,9 @@ export function TemplateManager() {
         .from('message_templates')
         .select('*')
         .eq('user_id', userId)
+        // Keep the two provider namespaces apart — a Meta account never
+        // lists Evolution's local templates and vice versa.
+        .eq('provider', isEvolution ? 'evolution' : 'meta')
         .order('created_at', { ascending: false });
       if (error) throw error;
       setTemplates(data || []);
@@ -258,9 +264,9 @@ export function TemplateManager() {
   }
 
   async function handleSubmit() {
-    // AUTHENTICATION is blocked by the persistent banner + disabled
-    // submit button; this is a defensive second line of defense.
-    if (form.category === 'Authentication') return;
+    // AUTHENTICATION is a Meta-only restriction (blocked by the banner +
+    // disabled submit button). Evolution templates ignore categories.
+    if (!isEvolution && form.category === 'Authentication') return;
     try {
       setSubmitting(true);
       const isEdit = editingId !== null;
@@ -282,13 +288,15 @@ export function TemplateManager() {
       // immediately should not show a stale list.
       if (user) await fetchTemplates(user.id);
       toast.success(
-        data.dry_run
-          ? isEdit
-            ? t('toastSaveEditDry')
-            : t('toastSaveNewDry')
-          : isEdit
-            ? t('toastSubmitEditSuccess')
-            : t('toastSubmitNewSuccess'),
+        isEvolution
+          ? t('toastSavedLocal')
+          : data.dry_run
+            ? isEdit
+              ? t('toastSaveEditDry')
+              : t('toastSaveNewDry')
+            : isEdit
+              ? t('toastSubmitEditSuccess')
+              : t('toastSubmitNewSuccess'),
       );
       setDialogOpen(false);
       setForm(emptyForm);
@@ -488,15 +496,17 @@ export function TemplateManager() {
         description={t('description')}
         action={
           <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              onClick={handleSyncFromMeta}
-              disabled={syncing}
-              title={t('syncTitle')}
-            >
-              <RefreshCw className={`size-4 ${syncing ? 'animate-spin' : ''}`} />
-              {syncing ? t('syncing') : t('syncFromMeta')}
-            </Button>
+            {!isEvolution && (
+              <Button
+                variant="outline"
+                onClick={handleSyncFromMeta}
+                disabled={syncing}
+                title={t('syncTitle')}
+              >
+                <RefreshCw className={`size-4 ${syncing ? 'animate-spin' : ''}`} />
+                {syncing ? t('syncing') : t('syncFromMeta')}
+              </Button>
+            )}
             <Button onClick={openCreate}>
               <Plus className="size-4" />
               {t('newTemplate')}
@@ -644,9 +654,11 @@ export function TemplateManager() {
               {editingId ? t('dialogEditTitle') : t('dialogNewTitle')}
             </DialogTitle>
             <DialogDescription className="text-muted-foreground">
-              {editingId
-                ? t('dialogEditDesc')
-                : t('dialogNewDesc')}
+              {isEvolution
+                ? t('evolutionHint')
+                : editingId
+                  ? t('dialogEditDesc')
+                  : t('dialogNewDesc')}
             </DialogDescription>
           </DialogHeader>
 
@@ -784,7 +796,7 @@ export function TemplateManager() {
                     maxLength={TEMPLATE_LIMITS.headerTextMaxLength}
                     className="bg-muted border-border text-foreground placeholder:text-muted-foreground"
                   />
-                  {headerVarCount > 0 && (
+                  {!isEvolution && headerVarCount > 0 && (
                     <Input
                       id="template-header-sample"
                       aria-label={t('headerSampleAria')}
@@ -878,7 +890,7 @@ export function TemplateManager() {
                 {t('bodyHint')}
               </p>
 
-              {bodyVarCount > 0 && (
+              {!isEvolution && bodyVarCount > 0 && (
                 <div className="space-y-1.5 pt-1">
                   <Label className="text-[11px] text-muted-foreground">
                     {t('sampleValues')}
@@ -1063,14 +1075,18 @@ export function TemplateManager() {
             </Button>
             <Button
               onClick={handleSubmit}
-              disabled={submitting || form.category === 'Authentication'}
+              disabled={
+                submitting || (!isEvolution && form.category === 'Authentication')
+              }
               className="bg-primary hover:bg-primary/90 text-primary-foreground"
             >
               {submitting ? (
                 <>
                   <Loader2 className="size-4 animate-spin" />
-                  {editingId ? t('saving') : t('submitting')}
+                  {editingId || isEvolution ? t('saving') : t('submitting')}
                 </>
+              ) : isEvolution ? (
+                t('saveTemplate')
               ) : editingId ? (
                 t('saveResubmit')
               ) : (

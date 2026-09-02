@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
+import { useWhatsAppProvider } from '@/hooks/use-whatsapp-provider';
 import { formatCurrency } from '@/lib/currency';
 import { toast } from 'sonner';
 import type { Contact, Tag, ContactTag, ContactNote, CustomField, ContactCustomValue, Deal, MessageTemplate } from '@/types';
@@ -17,6 +18,13 @@ import {
   SheetTitle,
   SheetDescription,
 } from '@/components/ui/sheet';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -38,6 +46,7 @@ import {
   X,
   DollarSign,
   LayoutTemplate,
+  Send,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
@@ -57,6 +66,10 @@ export function ContactDetailView({
   const t = useTranslations('Contacts.detailView');
   const supabase = createClient();
   const { accountId, defaultCurrency } = useAuth();
+  // Evolution (Baileys) has no 24h window — the business can open a
+  // conversation with a free-text message. Meta requires an approved
+  // template to initiate, so we keep it template-only there.
+  const { isEvolution } = useWhatsAppProvider();
 
   const [contact, setContact] = useState<Contact | null>(null);
   const [loading, setLoading] = useState(false);
@@ -67,6 +80,12 @@ export function ContactDetailView({
   // find-or-creates the conversation, so no inbound message is required.
   const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
   const [sendingTemplate, setSendingTemplate] = useState(false);
+
+  // Send free-text message (Evolution only) — same find-or-create path as
+  // the template send, but with a plain body instead of a template.
+  const [messageDialogOpen, setMessageDialogOpen] = useState(false);
+  const [messageText, setMessageText] = useState('');
+  const [sendingText, setSendingText] = useState(false);
 
   // Details tab
   const [editName, setEditName] = useState('');
@@ -372,6 +391,40 @@ export function ContactDetailView({
     }
   }
 
+  async function handleSendText() {
+    if (!contactId || !messageText.trim()) return;
+    setSendingText(true);
+    try {
+      const res = await fetch('/api/whatsapp/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          // No conversation_id — the route find-or-creates one for this
+          // contact, mirroring the template-send payload.
+          contact_id: contactId,
+          message_type: 'text',
+          content_text: messageText.trim(),
+        }),
+      });
+
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const reason = payload?.error || `HTTP ${res.status}`;
+        toast.error(t('toastMessageFailed', { reason }));
+        return;
+      }
+
+      toast.success(t('toastMessageSent'));
+      setMessageText('');
+      setMessageDialogOpen(false);
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : 'network error';
+      toast.error(t('toastMessageFailed', { reason }));
+    } finally {
+      setSendingText(false);
+    }
+  }
+
   function getInitials(name?: string | null) {
     if (!name) return '?';
     return name
@@ -438,12 +491,32 @@ export function ContactDetailView({
                   </div>
                 </div>
               </div>
-              <div className="mt-3">
+              <div className="mt-3 flex flex-wrap gap-2">
+                {isEvolution && (
+                  <Button
+                    size="sm"
+                    onClick={() => setMessageDialogOpen(true)}
+                    disabled={sendingText}
+                    className="bg-primary text-primary-foreground hover:bg-primary/90"
+                  >
+                    {sendingText ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <Send className="size-4" />
+                    )}
+                    {t('sendMessageBtn')}
+                  </Button>
+                )}
                 <Button
                   size="sm"
+                  variant={isEvolution ? 'outline' : 'default'}
                   onClick={() => setTemplatePickerOpen(true)}
                   disabled={sendingTemplate}
-                  className="bg-primary text-primary-foreground hover:bg-primary/90"
+                  className={
+                    isEvolution
+                      ? undefined
+                      : 'bg-primary text-primary-foreground hover:bg-primary/90'
+                  }
                 >
                   {sendingTemplate ? (
                     <Loader2 className="size-4 animate-spin" />
@@ -760,6 +833,41 @@ export function ContactDetailView({
       onOpenChange={setTemplatePickerOpen}
       onSelect={handleSendTemplate}
     />
+    <Dialog open={messageDialogOpen} onOpenChange={setMessageDialogOpen}>
+      <DialogContent className="bg-popover border-border text-popover-foreground">
+        <DialogHeader>
+          <DialogTitle>{t('sendMessageTitle')}</DialogTitle>
+        </DialogHeader>
+        <Textarea
+          value={messageText}
+          onChange={(e) => setMessageText(e.target.value)}
+          placeholder={t('messagePlaceholder')}
+          rows={4}
+          autoFocus
+        />
+        <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={() => setMessageDialogOpen(false)}
+            disabled={sendingText}
+          >
+            {t('cancel')}
+          </Button>
+          <Button
+            onClick={handleSendText}
+            disabled={sendingText || !messageText.trim()}
+            className="bg-primary text-primary-foreground hover:bg-primary/90"
+          >
+            {sendingText ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Send className="size-4" />
+            )}
+            {t('sendMessageAction')}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
     </>
   );
 }

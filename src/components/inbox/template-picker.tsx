@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { useWhatsAppProvider } from "@/hooks/use-whatsapp-provider";
 import type { MessageTemplate } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -80,6 +81,7 @@ export function TemplatePicker({
   onSelect,
 }: TemplatePickerProps) {
   const t = useTranslations("Inbox.templatePicker");
+  const { isEvolution } = useWhatsAppProvider();
 
   const [templates, setTemplates] = useState<MessageTemplate[]>([]);
   const [loading, setLoading] = useState(true);
@@ -115,6 +117,8 @@ export function TemplatePicker({
         .from("message_templates")
         .select("*")
         .eq("status", "APPROVED")
+        // Only surface templates for the account's active provider.
+        .eq("provider", isEvolution ? "evolution" : "meta")
         .order("created_at", { ascending: false });
 
       if (cancelled) return;
@@ -130,7 +134,7 @@ export function TemplatePicker({
     return () => {
       cancelled = true;
     };
-  }, [open]);
+  }, [open, isEvolution]);
 
   function resetSelection() {
     setSelected(null);
@@ -210,9 +214,13 @@ export function TemplatePicker({
               </div>
             ) : templates.length === 0 ? (
               <div className="rounded-md border border-border bg-background/50 p-6 text-center">
-                <p className="text-sm text-popover-foreground">{t("noApprovedTemplates")}</p>
+                <p className="text-sm text-popover-foreground">
+                  {isEvolution ? t("noLocalTemplates") : t("noApprovedTemplates")}
+                </p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  {t("noApprovedTemplatesHint")}
+                  {isEvolution
+                    ? t("noLocalTemplatesHint")
+                    : t("noApprovedTemplatesHint")}
                 </p>
               </div>
             ) : (

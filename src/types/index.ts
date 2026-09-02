@@ -366,6 +366,11 @@ export interface MessageTemplate {
   buttons?: TemplateButton[];
   sample_values?: TemplateSampleValues;
   status?: MessageTemplateStatus;
+  /**
+   * Which backend owns this template. 'evolution' rows are local-only
+   * (no Meta approval) and rendered to text/media at send time. Migration 037.
+   */
+  provider?: WhatsAppProviderId;
   meta_template_id?: string;
   rejection_reason?: string;
   quality_score?: 'GREEN' | 'YELLOW' | 'RED';

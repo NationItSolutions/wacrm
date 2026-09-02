@@ -13,8 +13,12 @@ const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
  *
  * The rest of the headers are straight blocks, safe to enforce today:
  *   - HSTS: only meaningful on HTTPS (no-op on http://localhost).
- *   - X-Content-Type-Options / X-Frame-Options / Referrer-Policy:
- *     baseline OWASP hardening, no behavioural cost.
+ *   - X-Content-Type-Options / Referrer-Policy: baseline OWASP
+ *     hardening, no behavioural cost.
+ *   - Framing IS allowed (no X-Frame-Options; CSP frame-ancestors is
+ *     permissive) so wacrm can be embedded in an iframe (e.g. inside
+ *     Odoo). This trades away clickjacking protection — revisit if the
+ *     embed host ever narrows to a known origin.
  *   - Permissions-Policy: we don't use camera / microphone / etc, so
  *     deny them. A supply-chain compromise or a forgotten plugin
  *     can't silently opt back in.
@@ -25,7 +29,10 @@ const SECURITY_HEADERS = [
     value: "max-age=63072000; includeSubDomains; preload",
   },
   { key: "X-Content-Type-Options", value: "nosniff" },
-  { key: "X-Frame-Options", value: "DENY" },
+  // X-Frame-Options intentionally omitted so the app can be embedded in
+  // an iframe (e.g. inside Odoo). X-Frame-Options has no way to allow a
+  // specific external origin (ALLOW-FROM is obsolete/ignored by Chrome),
+  // so framing is governed by CSP frame-ancestors below instead.
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   {
     // Microphone is allowed for same-origin (`self`) so the inbox
@@ -56,7 +63,10 @@ const SECURITY_HEADERS = [
       // Supabase REST + realtime (WSS). All Meta API calls happen
       // server-side, so graph.facebook.com does not belong here.
       "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
-      "frame-ancestors 'none'",
+      // Permissive: any site may frame wacrm (needed for the Odoo embed).
+      // Narrow this to the embed host's origin to restore clickjacking
+      // protection once that origin is fixed.
+      "frame-ancestors *",
       "base-uri 'self'",
       "form-action 'self'",
     ].join("; "),

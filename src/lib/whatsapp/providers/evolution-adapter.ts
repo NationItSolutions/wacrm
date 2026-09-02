@@ -21,6 +21,7 @@ import {
   toRemoteJid,
   type EvolutionQuoted,
 } from '@/lib/whatsapp/evolution-api'
+import { renderEvolutionTemplate } from '@/lib/whatsapp/template-render'
 import type {
   WhatsAppProvider,
   ProviderCapabilities,
@@ -32,11 +33,14 @@ import type {
   SendReactionArgs,
   SendInteractiveButtonsArgs,
   SendInteractiveListArgs,
+  SendTemplateArgs,
   DeleteMessageArgs,
 } from './types'
 
 const EVOLUTION_CAPABILITIES: ProviderCapabilities = {
-  supportsTemplates: false,
+  // Local, unapproved templates: the row is rendered to text/media at
+  // send time (renderEvolutionTemplate) rather than submitted to Meta.
+  supportsTemplates: true,
   supportsInteractive: false, // degraded to numbered text below
   has24hWindow: false,
   supportsReactions: true,
@@ -99,6 +103,36 @@ export class EvolutionProvider implements WhatsAppProvider {
       fileName: a.filename,
       quoted,
     })
+  }
+
+  // Evolution has no server-side templates — the local row IS the
+  // template. Render it to text (+ optional media header) and send.
+  // async so the missing-row guard rejects rather than throwing
+  // synchronously (the method's contract is to return a Promise).
+  async sendTemplate(a: SendTemplateArgs): Promise<ProviderSendResult> {
+    if (!a.template) {
+      throw new Error(
+        'Evolution template not found locally — create it in Settings → Templates.',
+      )
+    }
+    const rendered = renderEvolutionTemplate(a.template, {
+      body: a.messageParams?.body ?? a.params,
+      headerText: a.messageParams?.headerText,
+      headerMediaUrl: a.messageParams?.headerMediaUrl,
+      buttonParams: a.messageParams?.buttonParams,
+    })
+    const quoted = this.quoted(a.to, a.replyTo)
+    if (rendered.media) {
+      return evoSendMedia({
+        ...this.base,
+        to: a.to,
+        mediatype: rendered.media.kind,
+        media: rendered.media.url,
+        caption: rendered.text || undefined,
+        quoted,
+      })
+    }
+    return evoSendText({ ...this.base, to: a.to, text: rendered.text, quoted })
   }
 
   sendSticker(a: SendStickerArgs): Promise<ProviderSendResult> {

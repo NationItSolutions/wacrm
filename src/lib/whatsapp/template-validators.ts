@@ -336,3 +336,26 @@ export function validateTemplatePayload(payload: TemplatePayload): {
     headerVarCount: headerResult.variableCount,
   };
 }
+
+/**
+ * Lighter validation for Evolution (Baileys) templates. These are
+ * local-only — never submitted to Meta — so the Meta-specific rules
+ * (name regex, contiguous 1-indexed variables, sample values, header /
+ * footer caps) don't apply. We only enforce what the send-time renderer
+ * and the DB columns actually need: a name, a language, a non-empty body
+ * within the column cap, and structurally-valid buttons.
+ */
+export function validateEvolutionTemplatePayload(payload: TemplatePayload): void {
+  if (!payload.name?.trim()) throw new Error('Template name is required.');
+  if (payload.name.length > 512) {
+    throw new Error('Template name is too long (max 512 chars).');
+  }
+  if (!payload.language?.trim()) throw new Error('Language is required.');
+  if (!payload.body_text?.trim()) throw new Error('Body text is required.');
+  if (payload.body_text.length > TEMPLATE_LIMITS.bodyMaxLength) {
+    throw new Error(
+      `Body text exceeds ${TEMPLATE_LIMITS.bodyMaxLength} chars (got ${payload.body_text.length}).`,
+    );
+  }
+  validateButtons(payload.buttons);
+}

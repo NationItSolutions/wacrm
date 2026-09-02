@@ -5,6 +5,7 @@ import { decrypt } from '@/lib/whatsapp/encryption'
 import { submitMessageTemplate } from '@/lib/whatsapp/meta-api'
 import {
   validateTemplatePayload,
+  validateEvolutionTemplatePayload,
   type TemplatePayload,
 } from '@/lib/whatsapp/template-validators'
 import { buildMetaTemplatePayload } from '@/lib/whatsapp/template-components'
@@ -25,12 +26,16 @@ function buildUpsertRow(
     metaTemplateId: string | null
     submissionError: string | null
   },
+  provider: 'meta' | 'evolution' = 'meta',
 ) {
   return {
     // Account tenancy — required NOT NULL on message_templates as
     // of migration 017. Without this an INSERT throws on the
     // not-null constraint.
     account_id: accountId,
+    // Which backend owns the row. Evolution rows are local-only (no Meta
+    // submission) and rendered to text/media at send time. Migration 037.
+    provider,
     // Original author — kept as audit only. The unique index is
     // still on (user_id, name, language) — see the upsert helper
     // for the cross-teammate dedup follow-up.
@@ -117,6 +122,42 @@ export async function POST(request: Request) {
       payload = (await request.json()) as TemplatePayload
     } catch {
       return NextResponse.json({ error: 'Invalid JSON body.' }, { status: 400 })
+    }
+
+    // Evolution templates are local-only: no Meta submission, no waba_id,
+    // no approval lifecycle. Validate lightly and store as APPROVED
+    // (always sendable) so the pickers/broadcasts treat them as ready.
+    const { data: cfgRow } = await supabase
+      .from('whatsapp_config')
+      .select('provider')
+      .eq('account_id', accountId)
+      .maybeSingle()
+    if (cfgRow?.provider === 'evolution') {
+      try {
+        validateEvolutionTemplatePayload(payload)
+      } catch (e) {
+        return NextResponse.json(
+          { error: e instanceof Error ? e.message : 'Validation failed.' },
+          { status: 400 },
+        )
+      }
+      const { data: row, error } = await upsertTemplateRow(
+        supabase,
+        buildUpsertRow(
+          accountId,
+          user.id,
+          payload,
+          { status: 'APPROVED', metaTemplateId: null, submissionError: null },
+          'evolution',
+        ),
+      )
+      if (error) {
+        return NextResponse.json(
+          { error: `Failed to save template: ${error.message}` },
+          { status: 500 },
+        )
+      }
+      return NextResponse.json({ success: true, template: row })
     }
 
     if (payload.category === 'Authentication') {

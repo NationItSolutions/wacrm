@@ -245,6 +245,8 @@
       "pickTemplate": "Elige una plantilla de WhatsApp aprobada para enviar a este contacto.",
       "noApprovedTemplates": "No hay plantillas aprobadas",
       "noApprovedTemplatesHint": "Aprueba una plantilla en Meta WhatsApp Manager y luego sincronízala desde Configuración → Plantillas.",
+      "noLocalTemplates": "Aún no hay plantillas",
+      "noLocalTemplatesHint": "Crea una en Configuración → Plantillas.",
       "preview": "Vista previa",
       "headerValuePlaceholder": "Valor para la variable del encabezado",
       "bodyValuePlaceholder": "Valor para {val}",
@@ -409,7 +411,14 @@
       "toastCustomFieldsSaved": "Campos personalizados guardados",
       "toastCustomFieldsFailed": "No se pudieron guardar los campos personalizados",
       "toastTemplateSent": "Plantilla \"{name}\" enviada",
-      "toastTemplateFailed": "No se pudo enviar la plantilla: {reason}"
+      "toastTemplateFailed": "No se pudo enviar la plantilla: {reason}",
+      "sendMessageBtn": "Enviar mensaje",
+      "sendMessageTitle": "Enviar un mensaje",
+      "sendMessageAction": "Enviar",
+      "messagePlaceholder": "Escribe un mensaje…",
+      "cancel": "Cancelar",
+      "toastMessageSent": "Mensaje enviado",
+      "toastMessageFailed": "No se pudo enviar el mensaje: {reason}"
     },
     "importModal": {
       "title": "Importar contactos",
@@ -1392,6 +1401,9 @@
       "submitting": "Enviando…",
       "saveResubmit": "Guardar y reenviar",
       "submitApproval": "Enviar para aprobación",
+      "saveTemplate": "Guardar plantilla",
+      "evolutionHint": "Se guarda localmente y se envía como texto — sin aprobación de Meta.",
+      "toastSavedLocal": "Plantilla guardada",
 
       "deleteDialogTitle": "¿Eliminar plantilla?",
       "deleteMetaDesc": "\"{name}\" se eliminará de Meta y de wacrm. Las difusiones activas que usen esta plantilla comenzarán a fallar en su próximo envío. Esto no se puede deshacer.",

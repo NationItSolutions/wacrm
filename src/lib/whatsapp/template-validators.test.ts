@@ -9,6 +9,7 @@ import {
   validateSampleValues,
   validateTemplateName,
   validateTemplatePayload,
+  validateEvolutionTemplatePayload,
   type TemplatePayload,
 } from './template-validators';
 
@@ -273,5 +274,51 @@ describe('validateTemplatePayload — integration', () => {
         body_text: 'Hi {{1}}',
       }),
     ).toThrow(/exactly 1 sample/);
+  });
+});
+
+describe('validateEvolutionTemplatePayload', () => {
+  const base: TemplatePayload = {
+    name: 'Promo con espacios!', // Evolution ignores Meta's name regex
+    category: 'Marketing',
+    language: 'en_US',
+    body_text: 'Hi {{1}}',
+  };
+
+  it('accepts a minimal payload (no samples, loose name, non-contiguous vars)', () => {
+    expect(() => validateEvolutionTemplatePayload(base)).not.toThrow();
+    expect(() =>
+      validateEvolutionTemplatePayload({ ...base, body_text: 'Hi {{1}} {{3}}' }),
+    ).not.toThrow();
+  });
+
+  it('requires name, language, and body', () => {
+    expect(() =>
+      validateEvolutionTemplatePayload({ ...base, name: '' }),
+    ).toThrow(/name is required/i);
+    expect(() =>
+      validateEvolutionTemplatePayload({ ...base, language: '' }),
+    ).toThrow(/language is required/i);
+    expect(() =>
+      validateEvolutionTemplatePayload({ ...base, body_text: '  ' }),
+    ).toThrow(/body text is required/i);
+  });
+
+  it('enforces the body length cap', () => {
+    expect(() =>
+      validateEvolutionTemplatePayload({
+        ...base,
+        body_text: 'a'.repeat(TEMPLATE_LIMITS.bodyMaxLength + 1),
+      }),
+    ).toThrow(/exceeds/);
+  });
+
+  it('still structurally validates buttons', () => {
+    expect(() =>
+      validateEvolutionTemplatePayload({
+        ...base,
+        buttons: [{ type: 'URL', text: '', url: 'https://x' }],
+      }),
+    ).toThrow(/missing text/i);
   });
 });

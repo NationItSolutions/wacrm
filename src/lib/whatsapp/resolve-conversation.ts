@@ -23,6 +23,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { findExistingContact, isUniqueViolation } from '@/lib/contacts/dedupe';
 import { sanitizePhoneForMeta, isValidE164 } from '@/lib/whatsapp/phone-utils';
 import { SendMessageError } from '@/lib/whatsapp/send-message';
+import { findOrCreateConversationId } from '@/lib/whatsapp/find-or-create-conversation';
 import { resolveAuditUserId, ContactError } from '@/lib/api/v1/contacts';
 
 export interface ResolvedConversation {
@@ -137,31 +138,17 @@ export async function resolveConversationByPhone(
   }
 
   // ---- conversation -------------------------------------------
-  // One conversation per (account, contact) — same convention as the
-  // webhook.
-  const { data: conv } = await db
-    .from('conversations')
-    .select('id')
-    .eq('account_id', accountId)
-    .eq('contact_id', contactId)
-    .maybeSingle();
+  // One conversation per (account, contact) — enforced by a unique
+  // index (migration 038); the helper resolves it race-safely. A plain
+  // SELECT-then-INSERT here used to race two concurrent inbound/outbound
+  // messages into duplicate threads.
+  const conversationId = await findOrCreateConversationId(db, {
+    accountId,
+    userId: ownerUserId,
+    contactId,
+  });
 
-  if (conv?.id) {
-    return { conversationId: conv.id, contactId, contactCreated };
-  }
-
-  const { data: newConv, error: convErr } = await db
-    .from('conversations')
-    .insert({
-      account_id: accountId,
-      user_id: ownerUserId,
-      contact_id: contactId,
-    })
-    .select('id')
-    .single();
-
-  if (convErr || !newConv) {
-    console.error('[resolve-conversation] conversation create error:', convErr);
+  if (!conversationId) {
     throw new SendMessageError(
       'db_error',
       'Failed to create conversation',
@@ -169,5 +156,5 @@ export async function resolveConversationByPhone(
     );
   }
 
-  return { conversationId: newConv.id, contactId, contactCreated };
+  return { conversationId, contactId, contactCreated };
 }

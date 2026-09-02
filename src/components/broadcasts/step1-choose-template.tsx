@@ -33,10 +33,15 @@ export function Step1ChooseTemplate({ selectedTemplate, onSelect, onNext, onBack
         // Only APPROVED templates can be sent via Meta — anything else
         // would 400 at broadcast time. Hide them rather than letting
         // the user pick a template that will fail.
+        //
+        // Broadcasts still run through the Meta-only send path
+        // (broadcast-core.ts), so scope to Meta templates and keep
+        // Evolution's local templates out of the wizard for now.
         const { data, error: fetchError } = await supabase
           .from('message_templates')
           .select('*')
           .eq('status', 'APPROVED')
+          .eq('provider', 'meta')
           .order('created_at', { ascending: false });
 
         if (fetchError) throw fetchError;

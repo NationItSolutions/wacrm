@@ -245,6 +245,8 @@
       "pickTemplate": "Pick an approved WhatsApp template to send to this contact.",
       "noApprovedTemplates": "No approved templates",
       "noApprovedTemplatesHint": "Approve a template in Meta WhatsApp Manager, then sync it from Settings → Templates.",
+      "noLocalTemplates": "No templates yet",
+      "noLocalTemplatesHint": "Create one in Settings → Templates.",
       "preview": "Preview",
       "headerValuePlaceholder": "Value for the header variable",
       "bodyValuePlaceholder": "Value for {val}",
@@ -409,7 +411,14 @@
       "toastCustomFieldsSaved": "Custom fields saved",
       "toastCustomFieldsFailed": "Failed to save custom fields",
       "toastTemplateSent": "Template \"{name}\" sent",
-      "toastTemplateFailed": "Failed to send template: {reason}"
+      "toastTemplateFailed": "Failed to send template: {reason}",
+      "sendMessageBtn": "Send message",
+      "sendMessageTitle": "Send a message",
+      "sendMessageAction": "Send",
+      "messagePlaceholder": "Type a message…",
+      "cancel": "Cancel",
+      "toastMessageSent": "Message sent",
+      "toastMessageFailed": "Failed to send message: {reason}"
     },
     "importModal": {
       "title": "Import Contacts",
@@ -1392,7 +1401,10 @@
       "submitting": "Submitting…",
       "saveResubmit": "Save & Resubmit",
       "submitApproval": "Submit for Approval",
-      
+      "saveTemplate": "Save template",
+      "evolutionHint": "Stored locally and sent as text — no Meta approval needed.",
+      "toastSavedLocal": "Template saved",
+
       "deleteDialogTitle": "Delete template?",
       "deleteMetaDesc": "\"{name}\" will be deleted from Meta and from wacrm. Active broadcasts using this template will start failing on their next send. This can't be undone.",
       "deleteLocalDesc": "\"{name}\" will be deleted from wacrm. It was never submitted to Meta, so no remote cleanup is needed.",

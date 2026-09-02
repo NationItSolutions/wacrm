@@ -7,6 +7,7 @@ import {
 } from '@/lib/whatsapp/meta-api'
 import {
   validateTemplatePayload,
+  validateEvolutionTemplatePayload,
   type TemplatePayload,
 } from '@/lib/whatsapp/template-validators'
 import { buildMetaTemplatePayload } from '@/lib/whatsapp/template-components'
@@ -91,12 +92,51 @@ export async function PATCH(
     // meta_template_id and status — fetch explicitly.
     const { data: existing, error: lookupErr } = await supabase
       .from('message_templates')
-      .select('id, name, status, meta_template_id, language')
+      .select('id, name, status, meta_template_id, language, provider')
       .eq('id', id)
       .eq('account_id', accountId)
       .maybeSingle()
     if (lookupErr || !existing) {
       return NextResponse.json({ error: 'Template not found.' }, { status: 404 })
+    }
+
+    // Evolution templates are local-only — edit the row in place, never
+    // touching Meta, and keep the row APPROVED (always sendable). This
+    // must run before the meta_template_id guard below, which would
+    // otherwise reject every Evolution row (they have no meta id).
+    if (existing.provider === 'evolution') {
+      try {
+        validateEvolutionTemplatePayload(payload)
+      } catch (e) {
+        return NextResponse.json(
+          { error: e instanceof Error ? e.message : 'Validation failed.' },
+          { status: 400 },
+        )
+      }
+      const { data: row, error: updErr } = await supabase
+        .from('message_templates')
+        .update({
+          category: payload.category,
+          header_type: payload.header_type ?? null,
+          header_content: payload.header_content ?? null,
+          header_media_url: payload.header_media_url ?? null,
+          body_text: payload.body_text,
+          footer_text: payload.footer_text ?? null,
+          buttons: payload.buttons ?? null,
+          status: 'APPROVED',
+          submission_error: null,
+          last_submitted_at: new Date().toISOString(),
+        })
+        .eq('id', id)
+        .select()
+        .single()
+      if (updErr) {
+        return NextResponse.json(
+          { error: `Failed to save template: ${updErr.message}` },
+          { status: 500 },
+        )
+      }
+      return NextResponse.json({ success: true, template: row })
     }
 
     if (!existing.meta_template_id) {
