@@ -76,6 +76,19 @@ function readInitialMode(): Mode {
   return DEFAULT_MODE;
 }
 
+/**
+ * Keep the mobile browser chrome on the app's mode.
+ *
+ * `viewport.themeColor` in the root layout is a static value; Next's
+ * array form only understands `prefers-color-scheme`, which reflects the
+ * OS rather than the mode chosen here. The boot script sets this on first
+ * paint — this keeps it right when the user toggles.
+ */
+function syncThemeColorMeta(next: Mode) {
+  const meta = document.querySelector('meta[name="theme-color"]');
+  meta?.setAttribute("content", next === "light" ? "#FFFFFF" : "#0A0A0A");
+}
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<ThemeId>(readInitialTheme);
   const [mode, setModeState] = useState<Mode>(readInitialMode);
@@ -97,6 +110,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setModeState(next);
     if (typeof document !== "undefined") {
       document.documentElement.dataset.mode = next;
+      syncThemeColorMeta(next);
     }
     try {
       localStorage.setItem(MODE_STORAGE_KEY, next);
@@ -124,6 +138,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         if (isMode(e.newValue) && e.newValue !== mode) {
           setModeState(e.newValue);
           document.documentElement.dataset.mode = e.newValue;
+          syncThemeColorMeta(e.newValue);
         }
       }
     }

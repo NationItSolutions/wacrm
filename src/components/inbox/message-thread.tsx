@@ -18,7 +18,6 @@ import type {
   InteractiveMessagePayload,
 } from "@/types";
 import {
-  MessageSquare,
   ChevronDown,
   UserPlus,
   Check,
@@ -51,6 +50,7 @@ import { TemplatePicker } from "./template-picker";
 import { AiThreadBanner } from "./ai-thread-banner";
 import { buildReplyPreview } from "./reply-quote";
 import { toast } from "sonner";
+import { Logo } from "@/components/brand/logo";
 
 interface ReplyDraft {
   id: string;
@@ -142,16 +142,30 @@ const STATUS_OPTIONS: { label: string; value: ConversationStatus; color: string 
 ];
 
 /**
- * WhatsApp-style doodle background applied to the chat area (both the
- * active thread and the empty state). The SVG tile lives at
- * `/public/inbox-doodle.svg`; the slate-950 colour sits underneath so
- * the doodles read as a subtle pattern rather than a stark grid.
+ * Doodle background applied to the chat area (both the active thread and
+ * the empty state). The SVG tile lives at `/public/inbox-doodle.svg`.
+ *
+ * The tile is used as a *mask* rather than a background image. Its stroke
+ * is a baked-in #64748b that was tuned for the old slate ground and reads
+ * blue against the brand's true-neutral black — and because an
+ * externally-referenced SVG is an isolated document, no selector or
+ * `currentColor` can reach inside it to recolour it. Masking discards the
+ * baked colour entirely and keeps only the alpha, so `bg-foreground/25`
+ * becomes the paint and the pattern is correct in both modes with no edit
+ * to the asset.
+ *
+ * `isolate` + `-z-10` are load-bearing: both call sites render children,
+ * so the pseudo-element has to sit above the element's own background but
+ * below its content.
  *
  * Defined once at module scope so the two render paths can't drift —
  * if we ever switch the asset, both spots update together.
  */
 const DOODLE_BG_CLASSES =
-  "bg-background bg-[url('/inbox-doodle.svg')] bg-repeat";
+  "relative isolate bg-background " +
+  "before:pointer-events-none before:absolute before:inset-0 before:-z-10 " +
+  "before:[mask-image:url('/inbox-doodle.svg')] before:[mask-repeat:repeat] " +
+  "before:[mask-size:240px_240px] before:bg-foreground/25";
 
 export function MessageThread({
   conversation,
@@ -898,9 +912,10 @@ export function MessageThread({
   if (!conversation || !contact) {
     return (
       <div className={cn("flex flex-1 flex-col items-center justify-center", DOODLE_BG_CLASSES)}>
-        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
-          <MessageSquare className="h-8 w-8 text-muted-foreground" />
-        </div>
+        {/* One of the two places the brand mark appears as a watermark:
+            genuine dead space, per the manual's "acompaña, nunca
+            protagoniza" rule. */}
+        <Logo variant="mark" className="text-[64px] text-muted-foreground/50" />
         <h3 className="mt-4 text-sm font-medium text-muted-foreground">
           {t("selectConversation")}
         </h3>

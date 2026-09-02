@@ -18,6 +18,7 @@ import { useCan } from '@/hooks/use-can';
 import { GatedButton } from '@/components/ui/gated-button';
 import { getBroadcastStatus } from '@/lib/broadcast-status';
 import { useTranslations } from 'next-intl';
+import { PageTitle } from "@/components/layout/page-title";
 
 /**
  * Poll cadence while any broadcast is sending. Kept modest so we don't
@@ -182,7 +183,7 @@ export default function BroadcastsPage() {
 
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">{t('title')}</h1>
+          <PageTitle>{t('title')}</PageTitle>
           <p className="mt-1 text-sm text-muted-foreground">
             {t('subtitle')}
           </p>

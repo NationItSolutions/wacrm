@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { Logo } from "@/components/brand/logo";
 import { useAuth } from "@/hooks/use-auth";
 import { useTotalUnread } from "@/hooks/use-total-unread";
 import { useUnreadNotifications } from "@/hooks/use-unread-notifications";
@@ -186,14 +187,16 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
       >
         {/* Logo row. On mobile we put a close button here; on desktop the
             close button is hidden since the sidebar is always-visible. */}
-        <div className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-border px-4">
-          <Link href="/dashboard" className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <MessageSquare className="h-4 w-4" />
-            </div>
-            <span className="text-sm font-semibold text-foreground">
-              {t("title")}
-            </span>
+        {/* Clear space (brand manual §02): X = the cross height = 14.4px at
+            size="sm". px-4 and gap-4 both clear it, and the h-14 row leaves
+            18px above and below. Don't tighten either without re-checking. */}
+        <div className="flex h-14 shrink-0 items-center justify-between gap-4 border-b border-border px-4">
+          <Link
+            href="/dashboard"
+            title={t("title")}
+            className="flex items-center rounded-md text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <Logo variant="A" size="sm" />
           </Link>
           <button
             type="button"
@@ -231,7 +234,7 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
                       // Taller on mobile so fingers can hit the row reliably (≥44px).
                       "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors lg:py-2",
                       isActive
-                        ? "bg-primary/10 text-primary"
+                        ? "bg-primary/12 font-semibold text-primary shadow-[inset_2px_0_0_var(--primary)]"
                         : "text-muted-foreground hover:bg-muted hover:text-foreground",
                     )}
                   >
@@ -280,7 +283,7 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
                     className={cn(
                       "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors lg:py-2",
                       isActive
-                        ? "bg-primary/10 text-primary"
+                        ? "bg-primary/12 font-semibold text-primary shadow-[inset_2px_0_0_var(--primary)]"
                         : "text-muted-foreground hover:bg-muted hover:text-foreground",
                     )}
                   >

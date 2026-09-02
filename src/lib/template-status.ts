@@ -28,7 +28,7 @@ export const templateStatusConfig: Record<
   },
   APPROVED: {
     label: 'Approved',
-    classes: 'bg-primary/20 text-primary border-primary/30',
+    classes: 'bg-emerald-500/20 text-emerald-500 border-emerald-500/30',
   },
   REJECTED: {
     label: 'Rejected',

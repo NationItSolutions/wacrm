@@ -28,6 +28,8 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 
+import { Logo } from '@/components/brand/logo';
+
 export const metadata: Metadata = {
   referrer: 'no-referrer',
   // Belt-and-braces against an invite URL ending up in search
@@ -37,7 +39,10 @@ export const metadata: Metadata = {
 
 export default function JoinLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+    <div className="flex min-h-screen flex-col items-center justify-center gap-10 bg-background px-4">
+      {/* Lockup A only. The POWERED BY NATION endorsement is scoped to
+          the (auth) route group, and /join deliberately sits outside it. */}
+      <Logo variant="A" size="md" />
       {children}
     </div>
   );

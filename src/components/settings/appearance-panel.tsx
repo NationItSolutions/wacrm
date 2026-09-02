@@ -66,8 +66,8 @@ export function AppearancePanel() {
             <ThemeCard
               key={tObj.id}
               id={tObj.id}
-              name={tObj.name}
-              tagline={tObj.tagline}
+              name={t(`themes.${tObj.id}.name`)}
+              tagline={t(`themes.${tObj.id}.tagline`)}
               swatch={tObj.swatch}
               isActive={tObj.id === theme}
               onPick={() => setTheme(tObj.id)}
@@ -142,13 +142,14 @@ function ModeCard({
   const t = useTranslations("Settings.appearance");
   const isLight = mode === "light";
   const Icon = isLight ? Sun : Moon;
+  const modeLabel = t(`modes.${mode}`);
   return (
     <button
       type="button"
       role="radio"
       onClick={onPick}
       aria-checked={isActive}
-      aria-label={t("useMode", { mode })}
+      aria-label={t("useMode", { mode: modeLabel })}
       className={cn(
         "flex items-center gap-3 rounded-lg border bg-card p-4 text-left transition-colors",
         isActive
@@ -162,8 +163,8 @@ function ModeCard({
       >
         <Icon className="h-4 w-4" />
       </span>
-      <span className="flex-1 text-sm font-semibold capitalize text-foreground">
-        {mode}
+      <span className="flex-1 text-sm font-semibold text-foreground">
+        {modeLabel}
       </span>
       {isActive && (
         <span className="inline-flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-[11px] font-medium text-primary">
@@ -210,7 +211,9 @@ function ThemeCard({
           className="h-8 w-8 shrink-0 rounded-full"
           style={{
             background: swatch,
-            boxShadow: "inset 0 0 0 1px oklch(1 0 0 / 0.15)",
+            // Mid-grey rather than white: the mono swatch is half white,
+            // and a white ring would vanish against that half.
+            boxShadow: "inset 0 0 0 1px oklch(0.5 0 0 / 0.35)",
           }}
         />
         {isActive && (

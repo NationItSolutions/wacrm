@@ -10,6 +10,7 @@ import { formatDistanceToNow } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { PageTitle } from "@/components/layout/page-title";
 
 // Icon per notification type. Only one type exists today
 // (conversation_assigned) but this keeps future types a one-line add.
@@ -165,7 +166,7 @@ export default function NotificationsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Notifications</h1>
+          <PageTitle>Notifications</PageTitle>
           <p className="mt-1 text-sm text-muted-foreground">
             Conversations other teammates assign to you show up here.
           </p>

@@ -30,18 +30,30 @@ interface MessageBubbleProps {
   onToggleReaction?: (emoji: string) => void;
 }
 
+/**
+ * WhatsApp delivery ticks.
+ *
+ * These sit inside the outbound bubble, which is `bg-primary` — so with
+ * the monochrome accent it is solid white on the negativo and solid
+ * black on the positivo. The old `text-muted-foreground` and
+ * `text-blue-400` were computed against the *page* surface and fall to
+ * ~2.5:1 on a white bubble, so everything here is expressed against the
+ * bubble instead: `primary-foreground` is by definition the readable
+ * colour on it, and `blue-600` is the one blue that holds up on both
+ * #FFFFFF and #0A0A0A.
+ */
 function StatusIcon({ status }: { status: Message["status"] }) {
   switch (status) {
     case "sending":
-      return <Clock className="h-3 w-3 text-muted-foreground" />;
+      return <Clock className="h-3 w-3 text-primary-foreground/60" />;
     case "sent":
-      return <Check className="h-3 w-3 text-muted-foreground" />;
+      return <Check className="h-3 w-3 text-primary-foreground/60" />;
     case "delivered":
-      return <CheckCheck className="h-3 w-3 text-muted-foreground" />;
+      return <CheckCheck className="h-3 w-3 text-primary-foreground/60" />;
     case "read":
-      return <CheckCheck className="h-3 w-3 text-blue-400" />;
+      return <CheckCheck className="h-3 w-3 text-blue-600" />;
     case "failed":
-      return <XCircle className="h-3 w-3 text-red-400" />;
+      return <XCircle className="h-3 w-3 text-red-500" />;
     default:
       return null;
   }

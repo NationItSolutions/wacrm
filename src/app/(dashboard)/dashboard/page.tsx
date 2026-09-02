@@ -35,6 +35,7 @@ import { ResponseTimeChart } from '@/components/dashboard/response-time-chart'
 import { ActivityFeed } from '@/components/dashboard/activity-feed'
 
 import { useTranslations } from 'next-intl'
+import { PageTitle } from "@/components/layout/page-title";
 
 type RangeDays = 7 | 30 | 90
 
@@ -125,7 +126,7 @@ export default function DashboardPage() {
     <div className="space-y-5">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-foreground">{t('title')}</h1>
+        <PageTitle>{t('title')}</PageTitle>
         <p className="mt-1 text-sm text-muted-foreground">
           {t('description')}
         </p>

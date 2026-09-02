@@ -22,6 +22,7 @@ import {
   resolveSection,
   type SettingsSection,
 } from '@/components/settings/settings-sections';
+import { PageTitle } from "@/components/layout/page-title";
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -70,9 +71,9 @@ export default function SettingsPage() {
   return (
     <div>
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">
+        <PageTitle>
           {t('pageTitle')}
-        </h1>
+        </PageTitle>
         <p className="mt-1 text-sm text-muted-foreground">
           {t('pageDesc')}
         </p>

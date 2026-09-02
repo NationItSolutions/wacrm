@@ -145,7 +145,7 @@ export function EvolutionConfig({ accountId }: { accountId: string | null }) {
   };
 
   const handleDisconnect = async () => {
-    if (!confirm('Disconnect this Evolution instance from wacrm?')) return;
+    if (!confirm('Disconnect this Evolution instance from ConstruSuite?')) return;
     try {
       const res = await fetch('/api/whatsapp/evolution/connect', { method: 'DELETE' });
       if (!res.ok) {
@@ -179,7 +179,7 @@ export function EvolutionConfig({ accountId }: { accountId: string | null }) {
               Evolution API connection
             </CardTitle>
             <CardDescription>
-              Connect wacrm to your existing Evolution API server. wacrm will
+              Connect ConstruSuite to your existing Evolution API server. ConstruSuite will
               register its inbound webhook on the instance automatically.
             </CardDescription>
           </CardHeader>
@@ -288,7 +288,7 @@ export function EvolutionConfig({ accountId }: { accountId: string | null }) {
         </CardHeader>
         <CardContent className="space-y-3 text-sm text-muted-foreground">
           <p>1. Paste your Evolution server URL, the instance name, and its API key.</p>
-          <p>2. Click Connect — wacrm verifies the instance and registers its webhook.</p>
+          <p>2. Click Connect — ConstruSuite verifies the instance and registers its webhook.</p>
           <p>3. If the instance isn&apos;t linked yet, scan the QR code with your phone.</p>
           <p>
             Free-form messaging, media, stickers, replies, reactions and deletes are

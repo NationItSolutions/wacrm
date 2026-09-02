@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc *)",
+      "Bash(npx eslint *)",
+      "Bash(command -v chromium-cli)",
+      "Bash(chromium-cli --help)",
+      "Read(//root/.claude/**)",
+      "Bash(node -e \"try{require.resolve\\('playwright'\\);console.log\\('playwright disponible'\\)}catch\\(e\\){console.log\\('playwright no instalado'\\)}\")",
+      "Bash(curl -sf -o /dev/null -w \"dev server login: %{http_code}\\\\n\" http://localhost:3000/login)",
+      "Read(//app/apps/**)",
+      "Read(//proc/278850/**)",
+      "Bash(curl -s http://172.21.0.13:3000/login -o /tmp/claude-0/-root-wacrm/c2f2c36f-7b8f-45b9-a81a-7c3d02ff90b0/scratchpad/live2.html)"
+    ]
+  }
+}

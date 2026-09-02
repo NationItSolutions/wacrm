@@ -9,6 +9,13 @@
  * translucent fills sit fine on both light and dark surfaces; neutral
  * statuses use text-muted-foreground so the label stays legible in
  * light mode (a solid slate-400 would be too faint on white).
+ *
+ * The success states are an explicit emerald rather than the theme
+ * accent. They used to ride `bg-primary/10 text-primary`, which worked
+ * only while the accent happened to be a colour — under the monochrome
+ * brand default it collapses to white and success becomes visually
+ * identical to the neutral draft/pending chips. Their text uses the
+ * -500 shade, not -400, because it has to hold up on both surfaces.
  */
 
 import type { BroadcastStatus, RecipientStatus } from "@/types";
@@ -39,7 +46,7 @@ export const broadcastStatusConfig: Record<BroadcastStatus, StatusDisplay> = {
   },
   sent: {
     label: "sent",
-    classes: "bg-primary/10 text-primary border-primary/20",
+    classes: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
   },
   failed: {
     label: "failed",
@@ -58,11 +65,11 @@ export const recipientStatusConfig: Record<RecipientStatus, StatusDisplay> = {
   },
   delivered: {
     label: "delivered",
-    classes: "bg-primary/10 text-primary border-primary/20",
+    classes: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
   },
   read: {
     label: "read",
-    classes: "bg-primary/10 text-primary border-primary/20",
+    classes: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
   },
   replied: {
     label: "replied",

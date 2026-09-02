@@ -14,6 +14,7 @@
  */
 
 export const THEME_IDS = [
+  "mono",
   "violet",
   "emerald",
   "cobalt",
@@ -23,9 +24,25 @@ export const THEME_IDS = [
 
 export type ThemeId = (typeof THEME_IDS)[number];
 
-export const DEFAULT_THEME: ThemeId = "violet";
+export const DEFAULT_THEME: ThemeId = "mono";
 
 export const STORAGE_KEY = "wacrm.theme";
+
+/**
+ * Marker for the one-time move of pre-rebrand installs onto `mono`.
+ *
+ * Changing DEFAULT_THEME only affects browsers with nothing stored, so
+ * without this every existing user would stay on the old violet default
+ * and never see the ConstruSuite identity. The boot script in
+ * `src/app/layout.tsx` rewrites a stored "violet" to "mono" exactly once
+ * and sets this key. Anyone who deliberately picked emerald/cobalt/amber/
+ * rose keeps their accent, and picking violet again *after* the migration
+ * sticks, because the flag is already set.
+ */
+export const THEME_MIGRATED_KEY = "wacrm.theme.migrated";
+
+/** The accent the migration above moves away from. */
+export const LEGACY_DEFAULT_THEME = "violet";
 
 /**
  * MODE — the light/dark dimension, orthogonal to the accent theme.
@@ -55,8 +72,13 @@ export function isMode(value: unknown): value is Mode {
 
 export interface ThemeMeta {
   id: ThemeId;
+  /**
+   * English fallback label. The rendered name and tagline come from
+   * `Settings.appearance.themes.<id>` in the message catalogs — this
+   * stays as a non-rendered default for logs and for any consumer that
+   * has no translator in scope.
+   */
   name: string;
-  tagline: string;
   /**
    * Static swatch color for the picker chip. Hard-coded so the boot
    * script / picker cards don't need a getComputedStyle round trip
@@ -68,33 +90,39 @@ export interface ThemeMeta {
 
 export const THEMES: ReadonlyArray<ThemeMeta> = [
   {
+    id: "mono",
+    name: "Mono",
+    /**
+     * Split diagonally rather than solid, for two reasons: a solid white
+     * chip disappears on the light picker card and a solid black one
+     * disappears on the dark card, and the split is also an honest
+     * preview — this is the one accent that inverts with the mode.
+     */
+    swatch: "linear-gradient(135deg, oklch(1 0 0) 0 50%, oklch(0.1448 0 0) 50%)",
+  },
+  {
     id: "violet",
     name: "Violet",
-    tagline: "The default — confident, slightly playful.",
     swatch: "oklch(0.526 0.247 293)",
   },
   {
     id: "emerald",
     name: "Emerald",
-    tagline: "Growth-coded, nods at messaging without copying WhatsApp green.",
     swatch: "oklch(0.62 0.16 162)",
   },
   {
     id: "cobalt",
     name: "Cobalt",
-    tagline: "Clean B2B-SaaS blue — calm and product-y.",
     swatch: "oklch(0.585 0.2 254)",
   },
   {
     id: "amber",
     name: "Amber",
-    tagline: "Warm and friendly — feels good for SMB teams.",
     swatch: "oklch(0.745 0.16 65)",
   },
   {
     id: "rose",
     name: "Rose",
-    tagline: "Bold and modern — D2C, creator-economy, lifestyle.",
     swatch: "oklch(0.645 0.22 16)",
   },
 ];

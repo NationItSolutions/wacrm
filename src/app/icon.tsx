@@ -1,12 +1,20 @@
 import { ImageResponse } from "next/og";
 
-// Replaces the default Next.js favicon with the brand mark — Hostinger
-// violet rounded square + white chat-square glyph — matching the
-// sidebar logo in `src/components/layout/sidebar.tsx`. Next.js renders
-// this at build time and auto-injects <link rel="icon"> into <head>.
+// ConstruSuite favicon — the reduced mark, negativo.
 //
-// This route takes precedence over src/app/favicon.ico, which is the
-// Next.js default and can stay on disk harmlessly (or be removed).
+// Cross only, and that is the specified behaviour rather than a
+// compromise: the brand manual sets a 120px minimum for any lockup
+// carrying the wordmark and says to use the cross alone below it. A
+// 32px canvas is well below that. It also keeps this on the edge
+// runtime — `ImageResponse` cannot reach next/font's output, so a
+// wordmark would need an Oswald buffer read from disk.
+//
+// Clear space: the manual's X-margin rule governs the mark placed *in*
+// a layout. An app icon is a bounded container where the mark is the
+// artwork, so it follows the icon-grid convention instead — a full X on
+// each side would leave a 10px cross that disappears at 16px.
+//
+// This route takes precedence over src/app/favicon.ico.
 
 export const runtime = "edge";
 export const size = { width: 32, height: 32 };
@@ -22,21 +30,12 @@ export default function Icon() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: "#7c3aed", // primary (Hostinger-aligned purple)
+          background: "#0A0A0A",
           borderRadius: 6,
         }}
       >
-        <svg
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="#ffffff"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+        <svg width="20" height="20" viewBox="0 0 100 100" fill="#FFFFFF">
+          <path d="M37.5 0h25v37.5H100v25H62.5V100h-25V62.5H0v-25h37.5z" />
         </svg>
       </div>
     ),

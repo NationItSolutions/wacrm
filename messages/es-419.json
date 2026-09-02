@@ -1,4 +1,9 @@
 {
+  "Brand": {
+    "name": "ConstruSuite",
+    "tagline": "Sistema de gestión integral",
+    "loading": "Cargando ConstruSuite…"
+  },
   "LoginPage": {
     "titleAccept": "Inicia sesión para aceptar",
     "titleWelcome": "Bienvenido de nuevo",
@@ -15,7 +20,7 @@
     "createAccount": "Crear cuenta"
   },
   "Sidebar": {
-    "title": "Plantilla de CRM para WhatsApp",
+    "title": "ConstruSuite",
     "dashboard": "Panel",
     "inbox": "Bandeja de entrada",
     "notifications": "Notificaciones",
@@ -1283,7 +1288,7 @@
       "labelTooLong": "La etiqueta debe tener {max} caracteres o menos",
       "copied": "Enlace de invitación copiado",
       "clipboardBlocked": "Portapapeles bloqueado — copia el enlace manualmente",
-      "whatsappMessage": "Únete a {accountName} en wacrm con este enlace (válido por {expiresInDays} días): {url}"
+      "whatsappMessage": "Únete a {accountName} en ConstruSuite con este enlace (válido por {expiresInDays} días): {url}"
     },
     "tagsAndFields": {
       "title": "Campos y etiquetas",
@@ -1406,8 +1411,8 @@
       "toastSavedLocal": "Plantilla guardada",
 
       "deleteDialogTitle": "¿Eliminar plantilla?",
-      "deleteMetaDesc": "\"{name}\" se eliminará de Meta y de wacrm. Las difusiones activas que usen esta plantilla comenzarán a fallar en su próximo envío. Esto no se puede deshacer.",
-      "deleteLocalDesc": "\"{name}\" se eliminará de wacrm. Nunca se envió a Meta, así que no se necesita limpieza remota.",
+      "deleteMetaDesc": "\"{name}\" se eliminará de Meta y de ConstruSuite. Las difusiones activas que usen esta plantilla comenzarán a fallar en su próximo envío. Esto no se puede deshacer.",
+      "deleteLocalDesc": "\"{name}\" se eliminará de ConstruSuite. Nunca se envió a Meta, así que no se necesita limpieza remota.",
       "deleting": "Eliminando…",
       "delete": "Eliminar",
 
@@ -1449,7 +1454,7 @@
       "notConnected": "No conectado",
       "connectedDesc": "Tu token de acceso se autentica con Meta. Consulta el estado de registro más abajo para saber si los webhooks están realmente conectados.",
       "notConnectedDesc": "Configura tus credenciales de la API de Meta abajo para conectar tu cuenta de WhatsApp Business.",
-      "registered": "Registrado — Meta entregará eventos a wacrm",
+      "registered": "Registrado — Meta entregará eventos a ConstruSuite",
       "notRegistered": "No registrado — Meta no entregará eventos",
       "verifyWithMeta": "Verificar con Meta",
       "subscribedSince": "Suscrito desde {date}. Haz clic en Verificar con Meta si los eventos dejan de llegar.",
@@ -1473,7 +1478,7 @@
       "twoStepPin": "PIN de verificación en dos pasos",
       "optional": "(opcional)",
       "pinPlaceholder": "PIN de 6 dígitos de Meta WhatsApp Manager",
-      "pinHint": "Solo se necesita para conectar los mensajes entrantes de un número de producción. Configúralo en Meta Business Manager → Cuentas de WhatsApp → Números de teléfono → Verificación en dos pasos y luego pégalo aquí para que wacrm pueda suscribir el número — de lo contrario, Meta enruta los eventos entrantes a la última app que lo reclamó (el síntoma que afecta a los segundos números bajo una WABA compartida). Los números de prueba de Meta no tienen PIN y vienen preregistrados — déjalo en blanco para ellos. Dejarlo en blanco también mantiene intacto un registro existente.",
+      "pinHint": "Solo se necesita para conectar los mensajes entrantes de un número de producción. Configúralo en Meta Business Manager → Cuentas de WhatsApp → Números de teléfono → Verificación en dos pasos y luego pégalo aquí para que ConstruSuite pueda suscribir el número — de lo contrario, Meta enruta los eventos entrantes a la última app que lo reclamó (el síntoma que afecta a los segundos números bajo una WABA compartida). Los números de prueba de Meta no tienen PIN y vienen preregistrados — déjalo en blanco para ellos. Dejarlo en blanco también mantiene intacto un registro existente.",
       "webhookTitle": "Configuración del webhook",
       "webhookDesc": "Usa esta URL como tu callback de webhook en el panel de aplicaciones de Meta.",
       "webhookUrl": "URL de callback del webhook",
@@ -1581,7 +1586,37 @@
       "useMode": "Usar el modo {mode}",
       "active": "Activo",
       "accentColor": "Color de acento",
-      "useTheme": "Usar el tema {name}"
+      "useTheme": "Usar el tema {name}",
+      "modes": {
+        "dark": "Oscuro",
+        "light": "Claro"
+      },
+      "themes": {
+        "mono": {
+          "name": "Mono",
+          "tagline": "La identidad de ConstruSuite — blanco y negro, sin acento."
+        },
+        "violet": {
+          "name": "Violeta",
+          "tagline": "Seguro, con un toque desenfadado."
+        },
+        "emerald": {
+          "name": "Esmeralda",
+          "tagline": "Habla de crecimiento y guiña a la mensajería sin copiar el verde de WhatsApp."
+        },
+        "cobalt": {
+          "name": "Cobalto",
+          "tagline": "Azul B2B-SaaS, limpio — sereno y de producto."
+        },
+        "amber": {
+          "name": "Ámbar",
+          "tagline": "Cálido y cercano — funciona bien para equipos pequeños."
+        },
+        "rose": {
+          "name": "Rosa",
+          "tagline": "Audaz y moderno — D2C, economía de creadores, lifestyle."
+        }
+      }
     },
     "security": {
       "title": "Inicio de sesión y seguridad",
@@ -1639,7 +1674,7 @@
     },
     "aiConfig": {
       "title": "Configuración del agente",
-      "description": "Usa tu propia clave de OpenAI o Anthropic. wacrm llama al proveedor directamente con tu clave — sin tarifas de IA por usuario, y tus datos siguen siendo tuyos. Esto impulsa las respuestas redactadas con IA en la bandeja de entrada, el bot de autorespuesta y el Playground.",
+      "description": "Usa tu propia clave de OpenAI o Anthropic. ConstruSuite llama al proveedor directamente con tu clave — sin tarifas de IA por usuario, y tus datos siguen siendo tuyos. Esto impulsa las respuestas redactadas con IA en la bandeja de entrada, el bot de autorespuesta y el Playground.",
       "adminOnlyConfig": "Solo los administradores y propietarios pueden cambiar la configuración de la IA.",
       "loadFailed": "No se pudo cargar la configuración de la IA",
       "providerAndKey": "Proveedor y clave",

@@ -8,6 +8,7 @@ import { AiUsageCard } from '@/components/agents/ai-usage';
 import { AiConfig } from '@/components/settings/ai-config';
 import { useAuth } from '@/hooks/use-auth';
 import { canEditSettings } from '@/lib/auth/roles';
+import { PageTitle } from "@/components/layout/page-title";
 
 type Tab = 'playground' | 'setup' | 'usage';
 
@@ -40,9 +41,9 @@ export default function AgentsPage() {
     <div>
       <div className="flex items-center gap-2">
         <Bot className="h-6 w-6 text-primary" />
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">
+        <PageTitle>
           AI Agents
-        </h1>
+        </PageTitle>
       </div>
       <p className="mt-1 text-sm text-muted-foreground">
         Your bring-your-own-key AI agent — set it up, then test it in the

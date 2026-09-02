@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { Logo } from "@/components/brand/logo";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
@@ -14,6 +16,7 @@ import { PresenceHeartbeat } from "@/components/presence/presence-heartbeat";
 function DashboardShellInner({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const tBrand = useTranslations("Brand");
 
   // Sidebar drawer state — only used on mobile. On lg+ the sidebar is
   // always visible and this stays at `false` (ignored by the component).
@@ -28,11 +31,20 @@ function DashboardShellInner({ children }: { children: React.ReactNode }) {
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-          <p className="text-sm text-muted-foreground">Loading...</p>
-        </div>
+      // Splash, per the brand manual (§08): the lockup centred on the base
+      // black with the tagline below. gap-8 rather than gap-6 because the
+      // clear space X at size="lg" is 28.8px.
+      <div className="flex h-screen flex-col items-center justify-center gap-8 bg-background">
+        <Logo variant="A" size="lg" />
+        <p className="text-sm italic text-muted-foreground">
+          {tBrand("tagline")}
+        </p>
+        {/* Monochrome progress cue — a splash is a brand surface, so it
+            shouldn't carry the accent ring. */}
+        <div className="h-px w-24 animate-pulse bg-foreground/40" />
+        <span role="status" className="sr-only">
+          {tBrand("loading")}
+        </span>
       </div>
     );
   }

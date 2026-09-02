@@ -94,9 +94,11 @@ export function ResponseTimeChart({
             data={chartData}
             index="day"
             categories={[CATEGORY]}
-            // 'violet' maps to Tailwind's `fill-violet-500` — matches
-            // the brand accent the hand-rolled bars used (#7c3aed).
-            colors={['violet']}
+            // 'gray' maps to Tailwind's `fill-gray-500`. The brand is
+            // monochrome now, and a single-series bar chart needs no hue
+            // to be readable — colour is reserved for charts where it
+            // actually distinguishes something.
+            colors={['gray']}
             valueFormatter={(value) => `${value.toFixed(1)}m`}
             showLegend={false}
             yAxisWidth={48}

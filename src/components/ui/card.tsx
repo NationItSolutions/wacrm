@@ -38,7 +38,16 @@ function CardTitle({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="card-title"
       className={cn(
-        "font-heading text-base leading-snug font-medium group-data-[size=sm]/card:text-sm",
+        // Bebas Neue (--font-display), per the brand manual's headline
+        // role. It is condensed and caps-only, so it takes a size step up
+        // and weight 400 — Google ships Bebas at 400 alone, and asking for
+        // 500 would synthesise a smeared faux-bold.
+        //
+        // If a CardTitle ever renders a user-supplied string, opt that one
+        // out with `className="font-sans normal-case tracking-normal"`:
+        // forcing someone's contact or template name into caps alters
+        // their data.
+        "font-display text-lg leading-snug font-normal tracking-wide uppercase group-data-[size=sm]/card:text-base",
         className
       )}
       {...props}

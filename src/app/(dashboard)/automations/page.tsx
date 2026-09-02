@@ -43,6 +43,7 @@ import {
 import { AUTOMATION_TEMPLATES, type TemplateSlug } from "@/lib/automations/templates"
 import { triggerMeta, formatRelative } from "@/lib/automations/trigger-meta"
 import { cn } from "@/lib/utils"
+import { PageTitle } from "@/components/layout/page-title";
 
 const TEMPLATE_ORDER: TemplateSlug[] = [
   "welcome_message",
@@ -162,7 +163,7 @@ export default function AutomationsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">{t("title")}</h1>
+          <PageTitle>{t("title")}</PageTitle>
           <p className="mt-1 text-sm text-muted-foreground">
             {t("subtitle")}
           </p>
