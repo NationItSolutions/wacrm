@@ -281,7 +281,8 @@ export function TemplateManager() {
       const data = await res.json();
       if (!res.ok) {
         throw new Error(
-          data?.error || `${isEdit ? 'Edit' : 'Submit'} failed (HTTP ${res.status})`,
+          data?.error ||
+            t(isEdit ? 'editFailedHttp' : 'submitFailedHttp', { status: res.status }),
         );
       }
       // Refresh first, then close — re-opening the dialog
@@ -316,7 +317,7 @@ export function TemplateManager() {
       const res = await fetch('/api/whatsapp/templates/sync', { method: 'POST' });
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data?.error || `Sync failed (HTTP ${res.status})`);
+        throw new Error(data?.error || t('syncFailedHttp', { status: res.status }));
       }
       toast.success(
         t('toastSyncCount', { total: data.total }) +
@@ -330,7 +331,9 @@ export function TemplateManager() {
             `${e.name} (${e.language})`,
         );
         const suffix =
-          data.errors.length > 3 ? `, +${data.errors.length - 3} more` : '';
+          data.errors.length > 3
+            ? t('toastSyncMore', { count: data.errors.length - 3 })
+            : '';
         toast.error(t('toastSyncFailed', { preview: preview.join(', ') + suffix }));
       }
       if (data.truncated) {
@@ -364,7 +367,7 @@ export function TemplateManager() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        throw new Error(data?.error || `Delete failed (HTTP ${res.status})`);
+        throw new Error(data?.error || t('deleteFailedHttp', { status: res.status }));
       }
       toast.success(t('toastDeleteSuccess'));
       setTemplates((prev) => prev.filter((t) => t.id !== target.id));
@@ -466,6 +469,26 @@ export function TemplateManager() {
   const headerNeedsMedia =
     form.header_format !== 'none' && form.header_format !== 'text';
 
+  const headerFormatLabel = (format: HeaderFormat) =>
+    format === 'none'
+      ? t('headerNone')
+      : format === 'text'
+        ? t('headerText')
+        : format === 'image'
+          ? t('headerImage')
+          : format === 'video'
+            ? t('headerVideo')
+            : t('headerDocument');
+
+  const buttonTypeLabel = (type: TemplateButton['type']) =>
+    type === 'QUICK_REPLY'
+      ? t('btnQuickReply')
+      : type === 'URL'
+        ? t('btnUrl')
+        : type === 'PHONE_NUMBER'
+          ? t('btnPhone')
+          : t('btnCopyCode');
+
   async function handleHeaderImageFile(file: File) {
     if (!['image/jpeg', 'image/png'].includes(file.type)) {
       toast.error(t('toastInvalidImage'));
@@ -538,10 +561,10 @@ export function TemplateManager() {
                       <Badge
                         className={`text-xs border ${categoryColors[template.category] || ''}`}
                       >
-                        {template.category}
+                        {t(`categories.${template.category}`)}
                       </Badge>
                       <Badge className={`text-xs border ${status.classes}`}>
-                        {status.label}
+                        {t(`status.${statusKey}`)}
                       </Badge>
                       {template.language && (
                         <span className="text-xs text-muted-foreground uppercase">
@@ -557,9 +580,9 @@ export function TemplateManager() {
                                 ? 'text-yellow-400'
                                 : 'text-red-400'
                           }`}
-                          title="Meta quality score"
+                          title={t('qualityScoreTitle')}
                         >
-                          {template.quality_score}
+                          {t(`quality.${template.quality_score}`)}
                         </span>
                       )}
                     </div>
@@ -699,7 +722,9 @@ export function TemplateManager() {
                   }
                 >
                   <SelectTrigger className="w-full bg-muted border-border text-foreground">
-                    <SelectValue />
+                    <SelectValue>
+                      {(value: string) => t(`categories.${value}`)}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent className="bg-popover border-border">
                     {CATEGORIES.map((cat) => (
@@ -708,7 +733,7 @@ export function TemplateManager() {
                         value={cat}
                         className="text-popover-foreground focus:bg-muted focus:text-popover-foreground"
                       >
-                        {cat}
+                        {t(`categories.${cat}`)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -760,7 +785,9 @@ export function TemplateManager() {
                 }
               >
                 <SelectTrigger className="w-full bg-muted border-border text-foreground">
-                  <SelectValue />
+                  <SelectValue>
+                    {(value: HeaderFormat) => headerFormatLabel(value)}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent className="bg-popover border-border">
                   {HEADER_FORMATS.map((type) => (
@@ -769,15 +796,7 @@ export function TemplateManager() {
                       value={type}
                       className="text-popover-foreground focus:bg-muted focus:text-popover-foreground"
                     >
-                      {type === 'none'
-                        ? t('headerNone')
-                        : type === 'text'
-                          ? t('headerText')
-                          : type === 'image'
-                            ? t('headerImage')
-                            : type === 'video'
-                              ? t('headerVideo')
-                              : t('headerDocument')}
+                      {headerFormatLabel(type)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -787,7 +806,7 @@ export function TemplateManager() {
                 <div className="space-y-2 mt-2">
                   <Input
                     id="template-header-text"
-                    aria-label="Header text"
+                    aria-label={t('headerTextAria')}
                     placeholder={t('headerTextPlaceholder')}
                     value={form.header_content}
                     onChange={(e) =>
@@ -846,7 +865,9 @@ export function TemplateManager() {
                     </div>
                   )}
                   <Input
-                    placeholder={t('mediaUrlPlaceholder', { format: form.header_format })}
+                    placeholder={t('mediaUrlPlaceholder', {
+                      format: headerFormatLabel(form.header_format).toLowerCase(),
+                    })}
                     value={form.header_media_url}
                     onChange={(e) =>
                       setForm({ ...form, header_media_url: e.target.value })
@@ -857,7 +878,7 @@ export function TemplateManager() {
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={form.header_media_url}
-                      alt="Header sample"
+                      alt={t('headerSampleAlt')}
                       className="max-h-28 rounded-md border border-border object-contain"
                     />
                   )}
@@ -968,32 +989,34 @@ export function TemplateManager() {
                           }}
                         >
                           <SelectTrigger className="w-40 bg-muted border-border text-foreground h-8 text-xs">
-                            <SelectValue />
+                            <SelectValue>
+                              {(value: TemplateButton['type']) => buttonTypeLabel(value)}
+                            </SelectValue>
                           </SelectTrigger>
                           <SelectContent className="bg-popover border-border">
                             <SelectItem
                               value="QUICK_REPLY"
                               className="text-popover-foreground focus:bg-muted focus:text-popover-foreground"
                             >
-                              {t('btnQuickReply')}
+                              {buttonTypeLabel('QUICK_REPLY')}
                             </SelectItem>
                             <SelectItem
                               value="URL"
                               className="text-popover-foreground focus:bg-muted focus:text-popover-foreground"
                             >
-                              {t('btnUrl')}
+                              {buttonTypeLabel('URL')}
                             </SelectItem>
                             <SelectItem
                               value="PHONE_NUMBER"
                               className="text-popover-foreground focus:bg-muted focus:text-popover-foreground"
                             >
-                              {t('btnPhone')}
+                              {buttonTypeLabel('PHONE_NUMBER')}
                             </SelectItem>
                             <SelectItem
                               value="COPY_CODE"
                               className="text-popover-foreground focus:bg-muted focus:text-popover-foreground"
                             >
-                              {t('btnCopyCode')}
+                              {buttonTypeLabel('COPY_CODE')}
                             </SelectItem>
                           </SelectContent>
                         </Select>
@@ -1011,6 +1034,8 @@ export function TemplateManager() {
                           variant="ghost"
                           size="icon"
                           onClick={() => removeButton(i)}
+                          aria-label={t('removeButtonAria')}
+                          title={t('removeButtonAria')}
                           className="text-muted-foreground hover:text-red-400 hover:bg-red-950/30 size-7"
                         >
                           <X className="size-3.5" />

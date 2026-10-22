@@ -1,7 +1,6 @@
 "use client"
 
 import { Clock } from 'lucide-react'
-import { DOW_SHORT_MON_FIRST } from '@/lib/dashboard/date-utils'
 import type { ResponseTimeSummary } from '@/lib/dashboard/types'
 import { BarChart } from '@/components/tremor/bar-chart'
 import { EmptyState } from './empty-state'
@@ -20,12 +19,21 @@ interface ResponseTimeChartProps {
 }
 
 import { useTranslations } from 'next-intl'
+import { useDateLocale } from '@/hooks/use-date-locale'
 
 // Single category, single colour — the data is "average minutes
 // per weekday". Tremor expects categories as the second tuple in
 // the row object, so we shape the buckets into
-// `{ day: 'Mon', 'Avg minutes': 4.2 }` rows below.
-const CATEGORY = 'Avg minutes'
+// `{ day: 'Mon', 'Avg minutes': 4.2 }` rows below. The category name
+// doubles as the tooltip label, so it comes from the catalog.
+
+/** Short weekday name, Monday-first (0 = Mon … 6 = Sun), in `locale`. */
+function weekdayShort(mondayIndex: number, locale: string): string {
+  // 2024-01-01 was a Monday.
+  return new Date(2024, 0, 1 + mondayIndex).toLocaleDateString(locale, {
+    weekday: 'short',
+  })
+}
 
 export function ResponseTimeChart({
   data,
@@ -33,6 +41,8 @@ export function ResponseTimeChart({
   thresholdMinutes = 5,
 }: ResponseTimeChartProps) {
   const t = useTranslations('Dashboard.responseTimeChart')
+  const { locale } = useDateLocale()
+  const CATEGORY = t('avgMinutes')
   const hasData = data?.buckets.some((b) => b.avgMinutes != null) ?? false
 
   // Map buckets → Tremor rows. Null `avgMinutes` (no samples)
@@ -41,7 +51,7 @@ export function ResponseTimeChart({
   // surface "no samples" copy without losing the data shape.
   const chartData =
     data?.buckets.map((b, i) => ({
-      day: DOW_SHORT_MON_FIRST[i],
+      day: weekdayShort(i, locale),
       [CATEGORY]: b.avgMinutes ?? 0,
       samples: b.samples,
     })) ?? []

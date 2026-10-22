@@ -35,12 +35,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RequireRole } from '@/components/auth/require-role';
 import { useAuth } from '@/hooks/use-auth';
-import {
-  API_SCOPES,
-  SCOPE_DESCRIPTIONS,
-  type ApiScope,
-} from '@/lib/api-keys/scopes';
-import { useTranslations } from 'next-intl';
+import { API_SCOPES, type ApiScope } from '@/lib/api-keys/scopes';
+import { useLocale, useTranslations } from 'next-intl';
 import { SettingsPanelHead } from './settings-panel-head';
 
 interface ApiKey {
@@ -54,8 +50,8 @@ interface ApiKey {
   created_at: string;
 }
 
-function fmtDate(iso: string): string {
-  return new Date(iso).toLocaleDateString(undefined, {
+function fmtDate(iso: string, locale: string): string {
+  return new Date(iso).toLocaleDateString(locale, {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -72,6 +68,7 @@ function keyStatus(k: ApiKey): 'active' | 'revoked' | 'expired' {
 export function ApiKeysSettings() {
   const { canEditSettings } = useAuth();
   const t = useTranslations('Settings.apiKeys');
+  const locale = useLocale();
 
   const [keys, setKeys] = useState<ApiKey[]>([]);
   const [loading, setLoading] = useState(true);
@@ -230,13 +227,13 @@ export function ApiKeysSettings() {
                         )}
                       </div>
                       <p className="text-muted-foreground mt-1.5 text-xs">
-                        {t('created', { date: fmtDate(k.created_at) })}
+                        {t('created', { date: fmtDate(k.created_at, locale) })}
                         {' · '}
                         {k.last_used_at
-                          ? t('lastUsed', { date: fmtDate(k.last_used_at) })
+                          ? t('lastUsed', { date: fmtDate(k.last_used_at, locale) })
                           : t('neverUsed')}
                         {k.expires_at && status !== 'expired'
-                          ? ` · ${t('expires', { date: fmtDate(k.expires_at) })}`
+                          ? ` · ${t('expires', { date: fmtDate(k.expires_at, locale) })}`
                           : ''}
                       </p>
                     </div>
@@ -439,7 +436,9 @@ function CreateKeyDialog({
                           {scope}
                         </span>
                         <span className="text-muted-foreground block text-xs">
-                          {SCOPE_DESCRIPTIONS[scope]}
+                          {/* SCOPE_DESCRIPTIONS (lib) stays the English source;
+                              `messages:send` → scopeDescriptions.messages.send */}
+                          {t(`scopeDescriptions.${scope.replace(':', '.')}`)}
                         </span>
                       </span>
                     </label>

@@ -57,7 +57,7 @@ export function ValidationPanel() {
       </div>
       <div className="flex flex-col gap-1">
         {issues.map((i, ix) => (
-          <IssueLine key={ix} issue={i} onJump={requestFlash} t={t} />
+          <IssueLine key={ix} issue={i} onJump={requestFlash} />
         ))}
       </div>
     </div>
@@ -73,12 +73,12 @@ export function ValidationPanel() {
 export function IssueLine({
   issue,
   onJump,
-  t,
 }: {
   issue: ValidationIssue;
   onJump?: (key: string) => void;
-  t?: ReturnType<typeof useTranslations>;
 }) {
+  const t = useTranslations("Flows.validation");
+  const message = useIssueMessage(issue);
   const tone =
     issue.severity === "error" ? "text-red-300" : "text-amber-300";
   const iconTone =
@@ -92,7 +92,7 @@ export function IssueLine({
             {issue.node_key}
           </code>
         )}
-        {issue.message}
+        {message}
       </span>
     </>
   );
@@ -109,7 +109,7 @@ export function IssueLine({
           "flex w-full items-start gap-2 rounded-md px-2 py-1 text-left text-xs transition-colors hover:bg-muted/60",
           tone,
         )}
-        aria-label={t ? t("jumpToNode", { key: issue.node_key! }) : `Jump to node ${issue.node_key}`}
+        aria-label={t("jumpToNode", { key: issue.node_key! })}
       >
         {body}
       </button>
@@ -125,4 +125,23 @@ export function IssueLine({
       {body}
     </div>
   );
+}
+
+/**
+ * Render an issue in the active language. `validateFlowForActivation`
+ * tags each issue with a stable `code` + ICU `params`; the English
+ * `message` stays the fallback for any code the dictionary lacks.
+ */
+function useIssueMessage(issue: ValidationIssue): string {
+  const t = useTranslations("Flows.validation.issues");
+  const tBuilder = useTranslations("Flows.builder");
+  if (!issue.code || !t.has(issue.code)) return issue.message;
+  const params: Record<string, string | number> = { ...issue.params };
+  if (typeof params.nodeType === "string" && tBuilder.has(`nodes.${params.nodeType}.label`)) {
+    params.nodeType = tBuilder(`nodes.${params.nodeType}.label`);
+  }
+  if (params.branch === "true" || params.branch === "false") {
+    params.branch = tBuilder(params.branch === "true" ? "slotTrue" : "slotFalse");
+  }
+  return t(issue.code, params);
 }

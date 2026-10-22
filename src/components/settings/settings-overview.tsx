@@ -40,7 +40,8 @@ export function SettingsOverview({
     useAuth();
   const { mode, theme } = useTheme();
   const t = useTranslations('Settings.overview');
-  const tRoles = useTranslations('roles');
+  const tRoles = useTranslations('Settings.roles');
+  const tDeals = useTranslations('Settings.deals');
   const tSections = useTranslations('Settings.sections');
   const tAppearance = useTranslations('Settings.appearance');
 
@@ -147,8 +148,9 @@ export function SettingsOverview({
   const roleMeta = accountRole ? ROLE_META[accountRole] : null;
   const RoleIcon = roleMeta?.icon;
 
-  const currencyLabel =
-    CURRENCIES.find((c) => c.code === defaultCurrency)?.label ?? defaultCurrency;
+  const currencyLabel = CURRENCIES.some((c) => c.code === defaultCurrency)
+    ? tDeals(`currencies.${defaultCurrency}`)
+    : defaultCurrency;
   // Both halves of the appearance subtitle come from the catalog: the
   // wrapping sentence is already translated, so raw English "Violet" /
   // "dark" read as untranslated leftovers next to it.

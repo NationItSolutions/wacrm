@@ -11,7 +11,7 @@ import {
   Inbox,
 } from 'lucide-react'
 import type { ComponentType } from 'react'
-import type { ActivityItem, ActivityKind } from '@/lib/dashboard/types'
+import type { ActivityItem, ActivityKind, ActivityMessage } from '@/lib/dashboard/types'
 import { cn } from '@/lib/utils'
 import { EmptyState } from './empty-state'
 import { Skeleton } from './skeleton'
@@ -39,9 +39,14 @@ const KIND_THEME: Record<ActivityKind, KindTheme> = {
 }
 
 import { useTranslations } from 'next-intl'
+import { useDateLocale } from '@/hooks/use-date-locale'
+
+type T = ReturnType<typeof useTranslations>
 
 export function ActivityFeed({ items, loading }: ActivityFeedProps) {
   const t = useTranslations('Dashboard.activityFeed')
+  const tBroadcastStatus = useTranslations('Broadcasts.status')
+  const { locale } = useDateLocale()
   // Start at 5 — a quick scan of the most recent events without
   // dominating vertical real estate. User expands explicitly via the
   // footer control when they want deeper history.
@@ -103,10 +108,10 @@ export function ActivityFeed({ items, loading }: ActivityFeedProps) {
                     <Icon className="h-3.5 w-3.5" />
                   </span>
                   <span className="min-w-0 flex-1 truncate text-sm text-foreground">
-                    {it.text}
+                    {it.message ? activityText(it.message, t, tBroadcastStatus) : it.text}
                   </span>
                   <span className="flex-shrink-0 text-xs text-muted-foreground tabular-nums">
-                    {relativeTime(it.at, t)}
+                    {relativeTime(it.at, t, locale)}
                   </span>
                 </div>
               )
@@ -157,7 +162,34 @@ export function ActivityFeed({ items, loading }: ActivityFeedProps) {
   )
 }
 
-function relativeTime(iso: string, t: ReturnType<typeof useTranslations>): string {
+/** Localized feed line from the structured descriptor built in lib/dashboard. */
+function activityText(msg: ActivityMessage, t: T, tStatus: T): string {
+  switch (msg.key) {
+    case 'newMessage':
+      return t('items.newMessage', { who: msg.values.who || t('items.unknownContact') })
+    case 'newContact':
+      return t('items.newContact', msg.values)
+    case 'dealInStage':
+      return t('items.dealInStage', msg.values)
+    case 'dealUpdated':
+      return t('items.dealUpdated', msg.values)
+    case 'broadcastSent':
+      return t('items.broadcastSent', msg.values)
+    case 'broadcastStatus':
+      return t('items.broadcastStatus', {
+        ...msg.values,
+        status: tStatus.has(msg.values.status) ? tStatus(msg.values.status) : msg.values.status,
+      })
+    case 'automationTriggered':
+    case 'automationFailed':
+      return t(`items.${msg.key}`, {
+        name: msg.values.name || t('items.automationFallback'),
+        who: msg.values.who || t('items.aContact'),
+      })
+  }
+}
+
+function relativeTime(iso: string, t: T, locale: string): string {
   const then = new Date(iso).getTime()
   if (Number.isNaN(then)) return ''
   const diffSec = Math.round((Date.now() - then) / 1000)
@@ -165,5 +197,5 @@ function relativeTime(iso: string, t: ReturnType<typeof useTranslations>): strin
   if (diffSec < 3600) return t('timeM', { min: Math.floor(diffSec / 60) })
   if (diffSec < 86400) return t('timeH', { hr: Math.floor(diffSec / 3600) })
   if (diffSec < 2_592_000) return t('timeD', { day: Math.floor(diffSec / 86400) })
-  return new Date(iso).toLocaleDateString()
+  return new Date(iso).toLocaleDateString(locale)
 }

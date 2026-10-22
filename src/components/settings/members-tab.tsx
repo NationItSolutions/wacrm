@@ -62,12 +62,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { RequireRole } from '@/components/auth/require-role';
 import { useAuth } from '@/hooks/use-auth';
 import { usePresence } from '@/hooks/use-presence';
 import type { AccountRole } from '@/lib/auth/roles';
-import { presenceLabel, summarize } from '@/lib/presence';
+import { summarize, type PresenceStatus } from '@/lib/presence';
 import {
   PRESENCE_DOT_CLASS,
   PresenceDot,
@@ -105,17 +105,19 @@ const EDITABLE_ROLES: { value: AccountRole }[] = [
 // drift. The colour scale runs amber (owner — scarce, immutable) →
 // primary (admin) → muted (agent / viewer).
 
-function fmtDate(iso: string): string {
+type TFn = (key: string, values?: Record<string, string | number>) => string;
+
+function fmtDate(iso: string, locale: string): string {
   // Match the rest of the dashboard's locale-light formatting.
   const d = new Date(iso);
-  return d.toLocaleDateString(undefined, {
+  return d.toLocaleDateString(locale, {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
   });
 }
 
-function fmtExpiresIn(iso: string, t: (key: string, values?: Record<string, string | number>) => string): string {
+function fmtExpiresIn(iso: string, t: TFn): string {
   const ms = new Date(iso).getTime() - Date.now();
   if (ms <= 0) return t('expired');
   const days = Math.floor(ms / (24 * 60 * 60 * 1000));
@@ -124,9 +126,37 @@ function fmtExpiresIn(iso: string, t: (key: string, values?: Record<string, stri
   return t('expiresInHours', { hours });
 }
 
+/**
+ * Localized twin of `presenceLabel` / `formatLastSeen` from
+ * `@/lib/presence` (which stay English for their unit tests): same
+ * buckets, wording from `Settings.members.presence`.
+ */
+function presenceText(
+  status: PresenceStatus,
+  lastSeenAt: string | null | undefined,
+  now: number,
+  t: TFn,
+): string {
+  if (status === 'online') return t('presence.online');
+  if (status === 'away') return t('presence.away');
+  return t('presence.offline', { lastSeen: lastSeenText(lastSeenAt, now, t) });
+}
+
+function lastSeenText(lastSeenAt: string | null | undefined, now: number, t: TFn): string {
+  const last = lastSeenAt ? new Date(lastSeenAt).getTime() : NaN;
+  if (Number.isNaN(last)) return t('presence.aWhileAgo');
+  const mins = Math.floor(Math.max(0, now - last) / 60_000);
+  if (mins < 1) return t('presence.justNow');
+  if (mins < 60) return t('presence.minutesAgo', { count: mins });
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return t('presence.hoursAgo', { count: hours });
+  return t('presence.daysAgo', { count: Math.floor(hours / 24) });
+}
+
 export function MembersTab() {
   const t = useTranslations('Settings.members');
   const tRoles = useTranslations('Settings.roles');
+  const locale = useLocale();
   const { user, canManageMembers } = useAuth();
   const { getPresence, getRow, now } = usePresence();
 
@@ -151,7 +181,7 @@ export function MembersTab() {
 
       if (!mres.ok) {
         const payload = await mres.json().catch(() => ({}));
-        toast.error(payload.error || 'Failed to load members');
+        toast.error(payload.error || t('loadMembersFailed'));
         return;
       }
       const mdata = (await mres.json()) as { members: Member[] };
@@ -160,7 +190,7 @@ export function MembersTab() {
       if (ires) {
         if (!ires.ok) {
           const payload = await ires.json().catch(() => ({}));
-          toast.error(payload.error || 'Failed to load invitations');
+          toast.error(payload.error || t('loadInvitationsFailed'));
           return;
         }
         const idata = (await ires.json()) as { invitations: Invitation[] };
@@ -170,11 +200,11 @@ export function MembersTab() {
       }
     } catch (err) {
       console.error('[MembersTab] load error:', err);
-      toast.error('Could not reach the server');
+      toast.error(t('networkError'));
     } finally {
       setLoading(false);
     }
-  }, [canManageMembers]);
+  }, [canManageMembers, t]);
 
   useEffect(() => {
     void loadEverything();
@@ -210,7 +240,7 @@ export function MembersTab() {
           ),
         );
         const payload = await res.json().catch(() => ({}));
-        toast.error(payload.error || 'Failed to update role');
+        toast.error(payload.error || t('updateRoleFailed'));
         return;
       }
       toast.success(t('updatedToast', { name: member.full_name || t('unnamed'), role: tRoles(nextRole) }));
@@ -222,7 +252,7 @@ export function MembersTab() {
         ),
       );
       console.error('[MembersTab] role change error:', err);
-      toast.error('Could not reach the server');
+      toast.error(t('networkError'));
     } finally {
       setPendingMemberAction(null);
     }
@@ -238,7 +268,7 @@ export function MembersTab() {
       );
       if (!res.ok) {
         const payload = await res.json().catch(() => ({}));
-        toast.error(payload.error || 'Failed to remove member');
+        toast.error(payload.error || t('removeFailed'));
         return;
       }
       toast.success(t('removedToast', { name: removingMember.full_name || t('unnamed') }));
@@ -248,7 +278,7 @@ export function MembersTab() {
       setRemovingMember(null);
     } catch (err) {
       console.error('[MembersTab] remove error:', err);
-      toast.error('Could not reach the server');
+      toast.error(t('networkError'));
     } finally {
       setPendingMemberAction(null);
     }
@@ -261,14 +291,14 @@ export function MembersTab() {
       });
       if (!res.ok) {
         const payload = await res.json().catch(() => ({}));
-        toast.error(payload.error || 'Failed to revoke invitation');
+        toast.error(payload.error || t('revokeFailed'));
         return;
       }
       toast.success(t('revokedToast'));
       setInvitations((prev) => prev.filter((i) => i.id !== invite.id));
     } catch (err) {
       console.error('[MembersTab] revoke error:', err);
-      toast.error('Could not reach the server');
+      toast.error(t('networkError'));
     }
   }
 
@@ -333,10 +363,11 @@ export function MembersTab() {
               const isBusy = pendingMemberAction === member.user_id;
               const presence = getPresence(member.user_id);
               const presenceRow = getRow(member.user_id);
-              const presenceText = presenceLabel(
+              const presenceLabel = presenceText(
                 presence,
                 presenceRow?.last_seen_at ?? null,
                 now,
+                t,
               );
 
               return (
@@ -357,7 +388,7 @@ export function MembersTab() {
                             {member.avatar_url ? (
                               <AvatarImage
                                 src={member.avatar_url}
-                                alt={member.full_name || 'Member'}
+                                alt={member.full_name || t('memberAlt')}
                               />
                             ) : null}
                             <AvatarFallback className="bg-primary/10 text-sm font-medium text-primary">
@@ -371,13 +402,13 @@ export function MembersTab() {
                                 avatar. */}
                             <AvatarBadge
                               role="img"
-                              aria-label={presenceText}
+                              aria-label={presenceLabel}
                               className={PRESENCE_DOT_CLASS[presence]}
                             />
                           </Avatar>
                         }
                       />
-                      <TooltipContent>{presenceText}</TooltipContent>
+                      <TooltipContent>{presenceLabel}</TooltipContent>
                     </Tooltip>
 
                     <div className="min-w-0 flex-1">
@@ -402,7 +433,7 @@ export function MembersTab() {
                   {/* Joined date stays desktop-only. The mobile row's
                       vertical density makes the joined date noise. */}
                   <div className="hidden sm:block text-right text-xs text-muted-foreground">
-                    {t('joined', { date: fmtDate(member.joined_at) })}
+                    {t('joined', { date: fmtDate(member.joined_at, locale) })}
                   </div>
 
                   {/* Actions cluster. On mobile this is its own row
@@ -428,7 +459,9 @@ export function MembersTab() {
                           className="w-32 bg-muted border-border text-foreground"
                           disabled={isBusy}
                         >
-                          <SelectValue />
+                          <SelectValue>
+                            {(value: AccountRole) => tRoles(value)}
+                          </SelectValue>
                         </SelectTrigger>
                         <SelectContent>
                           {EDITABLE_ROLES.map((r) => (
@@ -460,6 +493,8 @@ export function MembersTab() {
                         size="sm"
                         onClick={() => setRemovingMember(member)}
                         disabled={isBusy}
+                        aria-label={t('removeAria', { name: member.full_name || t('unnamed') })}
+                        title={t('remove')}
                         className="border-red-500/40 bg-red-500/10 text-red-300 hover:bg-red-500/20 hover:border-red-500/60 hover:text-red-200"
                       >
                         <Trash2 className="size-4" />
@@ -533,7 +568,7 @@ export function MembersTab() {
                           </span>
                         </div>
                         <p className="mt-0.5 text-xs text-muted-foreground">
-                          {t('created', { date: fmtDate(inv.created_at) })} · {fmtExpiresIn(inv.expires_at, t)}
+                          {t('created', { date: fmtDate(inv.created_at, locale) })} · {fmtExpiresIn(inv.expires_at, t)}
                         </p>
                       </div>
 

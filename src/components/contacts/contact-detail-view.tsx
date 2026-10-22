@@ -49,6 +49,7 @@ import {
   Send,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useDateLocale } from '@/hooks/use-date-locale';
 
 interface ContactDetailViewProps {
   open: boolean;
@@ -64,6 +65,7 @@ export function ContactDetailView({
   onUpdated,
 }: ContactDetailViewProps) {
   const t = useTranslations('Contacts.detailView');
+  const { locale } = useDateLocale();
   const supabase = createClient();
   const { accountId, defaultCurrency } = useAuth();
   // Evolution (Baileys) has no 24h window — the business can open a
@@ -384,8 +386,8 @@ export function ContactDetailView({
 
       toast.success(t('toastTemplateSent', { name: template.name }));
     } catch (err) {
-      const reason = err instanceof Error ? err.message : 'network error';
-      toast.error(`Failed to send template: ${reason}`);
+      const reason = err instanceof Error ? err.message : t('networkError');
+      toast.error(t('toastTemplateFailed', { reason }));
     } finally {
       setSendingTemplate(false);
     }
@@ -418,7 +420,7 @@ export function ContactDetailView({
       setMessageText('');
       setMessageDialogOpen(false);
     } catch (err) {
-      const reason = err instanceof Error ? err.message : 'network error';
+      const reason = err instanceof Error ? err.message : t('networkError');
       toast.error(t('toastMessageFailed', { reason }));
     } finally {
       setSendingText(false);
@@ -541,7 +543,7 @@ export function ContactDetailView({
                   value="tags"
                   className="data-active:bg-muted data-active:text-primary text-muted-foreground"
                 >
-                  {t('tabs.tags', { fallback: 'Tags' })}
+                  {t('tabs.tags')}
                 </TabsTrigger>
                 <TabsTrigger
                   value="notes"
@@ -567,7 +569,7 @@ export function ContactDetailView({
               <TabsContent value="details" className="flex-1 overflow-y-auto px-4 py-3">
                 <div className="space-y-3">
                   <div className="space-y-1.5">
-                    <Label className="text-muted-foreground text-xs">{t('company', { fallback: 'Name' })}</Label>
+                    <Label className="text-muted-foreground text-xs">{t('name')}</Label>
                     <Input
                       value={editName}
                       onChange={(e) => setEditName(e.target.value)}
@@ -706,7 +708,7 @@ export function ContactDetailView({
                           </button>
                         </div>
                         <p className="text-xs text-muted-foreground mt-1.5">
-                          {new Date(note.created_at).toLocaleDateString('en-US', {
+                          {new Date(note.created_at).toLocaleDateString(locale, {
                             month: 'short',
                             day: 'numeric',
                             year: 'numeric',
@@ -814,7 +816,7 @@ export function ContactDetailView({
                                   : 'text-red-400'
                               }
                             >
-                              {deal.status}
+                              {t(`dealStatus.${deal.status}`)}
                             </span>
                           )}
                         </div>

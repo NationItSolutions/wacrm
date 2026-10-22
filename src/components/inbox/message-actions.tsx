@@ -155,8 +155,8 @@ export function MessageActions({
               setTouchOpen(false);
             }}
             className="flex h-5 w-5 items-center justify-center rounded-full text-popover-foreground hover:bg-destructive/15 hover:text-destructive"
-            aria-label="Delete for everyone"
-            title="Delete for everyone"
+            aria-label={t("deleteForEveryone")}
+            title={t("deleteForEveryone")}
           >
             <Trash2 className="h-3.5 w-3.5" />
           </button>

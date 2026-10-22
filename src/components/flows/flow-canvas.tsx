@@ -123,6 +123,22 @@ const NODE_HEIGHT = 90;
 // The true/false hues are derived from the start (emerald) and handoff
 // (rose) node colors so all branch/port colors stay single-sourced in
 // NODE_HUE — a palette tweak there can't leave these stale.
+/**
+ * Translate the fixed (non user-authored) slot / edge labels coming
+ * from lib/flows/edges.ts. Button and list-row labels are the
+ * author's own titles and pass through untouched.
+ */
+function fixedSlotLabel(
+  t: ReturnType<typeof useTranslations>,
+  slotId: string,
+  label: string
+): string {
+  if (slotId === 'next') return t('slotNext');
+  if (slotId === 'true') return t('slotTrue');
+  if (slotId === 'false') return t('slotFalse');
+  return label;
+}
+
 function slotColor(nodeType: NodeType, slotId: string, fallback: string) {
   if (nodeType === 'condition' && slotId === 'true') {
     return nodeColors('start').solid;
@@ -219,8 +235,11 @@ function FlowNodeCard({ data, selected }: NodeProps) {
               key={slot.id}
               className="text-muted-foreground relative flex items-center justify-between gap-2 rounded px-1 py-0.5 text-[11px]"
             >
-              <span className="truncate" title={slot.label}>
-                {slot.label}
+              <span
+                className="truncate"
+                title={fixedSlotLabel(t, slot.id, slot.label)}
+              >
+                {fixedSlotLabel(t, slot.id, slot.label)}
               </span>
               <Handle
                 type="source"
@@ -285,6 +304,23 @@ function FlowCanvasInner() {
     flashKey,
   } = useFlowEditor();
   const reactFlow = useReactFlow();
+  const tCanvas = useTranslations('Flows.canvas');
+  // React-Flow's built-in control / minimap / keyboard a11y strings.
+  const ariaLabelConfig = useMemo(
+    () => ({
+      'node.a11yDescription.default': tCanvas('a11yNode'),
+      'node.a11yDescription.keyboardDisabled': tCanvas('a11yNodeKeyboard'),
+      'edge.a11yDescription.default': tCanvas('a11yEdge'),
+      'controls.ariaLabel': tCanvas('controls'),
+      'controls.zoomIn.ariaLabel': tCanvas('zoomIn'),
+      'controls.zoomOut.ariaLabel': tCanvas('zoomOut'),
+      'controls.fitView.ariaLabel': tCanvas('fitView'),
+      'controls.interactive.ariaLabel': tCanvas('toggleInteractivity'),
+      'minimap.ariaLabel': tCanvas('minimap'),
+      'handle.ariaLabel': tCanvas('handle'),
+    }),
+    [tCanvas]
+  );
   const builderNodes = state.nodes;
   const entryNodeId = state.entry_node_id;
 
@@ -369,7 +405,7 @@ function FlowCanvasInner() {
       source: e.source,
       target: e.target,
       sourceHandle: e.sourceHandle,
-      label: e.label,
+      label: e.label ? fixedSlotLabel(t, e.sourceHandle, e.label) : e.label,
       // Mode-aware via CSS tokens so edge chrome flips with light/dark.
       labelStyle: { fill: 'var(--muted-foreground)', fontSize: 11 },
       labelBgStyle: { fill: 'var(--card)' },
@@ -379,7 +415,7 @@ function FlowCanvasInner() {
     }));
 
     return rfEdges;
-  }, [builderNodes]);
+  }, [builderNodes, t]);
 
   const handleNodesChange = useCallback(
     (changes: NodeChange<RfNode<NodeData>>[]) => {
@@ -529,6 +565,7 @@ function FlowCanvasInner() {
           fitView
           fitViewOptions={{ padding: 0.2, maxZoom: 1 }}
           proOptions={{ hideAttribution: true }}
+          ariaLabelConfig={ariaLabelConfig}
           onNodesChange={handleNodesChange}
           onNodeDragStop={handleNodeDragStop}
           onNodeClick={handleNodeClick}

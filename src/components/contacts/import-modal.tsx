@@ -214,9 +214,9 @@ export function ImportModal({
         data: { session },
       } = await supabase.auth.getSession();
       const user = session?.user;
-      if (!user) throw new Error('Not authenticated');
+      if (!user) throw new Error(t('notAuthenticated'));
       if (!accountId)
-        throw new Error('Your profile is not linked to an account.');
+        throw new Error(t('notLinked'));
 
       let imported = 0;
       let skipped = 0;
@@ -343,23 +343,25 @@ export function ImportModal({
 
       setResult({ imported, skipped, failed, tagsAssigned });
       if (imported > 0) {
-        toast.success(t('toastImported', { count: imported }));
+        toast.success(t('toastImportedCount', { count: imported }));
         onImported();
       }
       if (tagsAssigned > 0) {
-        toast.success(t('toastTagsAssigned', { count: tagsAssigned }));
+        toast.success(t('toastTagsAssignedCount', { count: tagsAssigned }));
       }
       if (skippedNames.length > 0) {
         const sample = skippedNames.slice(0, 3).join(', ');
         const more =
-          skippedNames.length > 3 ? ` (+${skippedNames.length - 3} more)` : '';
+          skippedNames.length > 3
+            ? t('toastTagsSkippedMore', { count: skippedNames.length - 3 })
+            : '';
         toast.info(t('toastTagsSkipped', { sample, more }));
       }
       if (skipped > 0) {
-        toast.info(t('toastSkipped', { count: skipped }));
+        toast.info(t('toastSkippedCount', { count: skipped }));
       }
       if (failed > 0) {
-        toast.error(t('toastFailed', { count: failed }));
+        toast.error(t('toastFailedCount', { count: failed }));
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : t('toastError');
@@ -438,7 +440,7 @@ export function ImportModal({
                   {truncateFilename(file.name)}
                 </p>
                 <span className="rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">
-                  {t('rowsReady', { count: parsedRows.length })}
+                  {t('rowsReadyCount', { count: parsedRows.length })}
                 </span>
               </>
             ) : (
@@ -476,7 +478,7 @@ export function ImportModal({
                   {tagStats.rowsWithTags > 0 && (
                     <span className="inline-flex items-center gap-1 rounded-md bg-muted/90 px-2 py-0.5 text-[11px] text-muted-foreground">
                       <Tag className="text-primary/80 size-3" />
-                      {t('previewTags', { tags: tagStats.unique, contacts: tagStats.rowsWithTags })}
+                      {t('previewTagsCount', { tags: tagStats.unique, contacts: tagStats.rowsWithTags })}
                     </span>
                   )}
                 </div>
@@ -558,7 +560,7 @@ export function ImportModal({
 
               {parsedRows.length > PREVIEW_LIMIT && (
                 <p className="text-center text-[11px] text-muted-foreground">
-                  {t('moreRows', { count: parsedRows.length - PREVIEW_LIMIT })}
+                  {t('moreRowsCount', { count: parsedRows.length - PREVIEW_LIMIT })}
                 </p>
               )}
             </div>
@@ -577,7 +579,7 @@ export function ImportModal({
                 {result.tagsAssigned > 0 && (
                   <div className="flex items-center gap-1.5 text-sm text-cyan-400">
                     <CheckCircle className="size-4 shrink-0" />
-                    {t('resultTags', { count: result.tagsAssigned })}
+                    {t('resultTagsCount', { count: result.tagsAssigned })}
                   </div>
                 )}
                 {result.skipped > 0 && (
@@ -614,7 +616,7 @@ export function ImportModal({
               className="bg-primary hover:bg-primary/90 text-primary-foreground"
             >
               {importing && <Loader2 className="size-4 animate-spin" />}
-              {parsedRows.length > 0 ? t('importBtn', { count: parsedRows.length }) : t('importBtn', { count: 0 })}
+              {t('importBtnCount', { count: parsedRows.length })}
             </Button>
           )}
         </DialogFooter>

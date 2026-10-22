@@ -94,7 +94,20 @@
       "timeS": "{sec}s ago",
       "timeM": "{min}m ago",
       "timeH": "{hr}h ago",
-      "timeD": "{day}d ago"
+      "timeD": "{day}d ago",
+      "items": {
+        "newMessage": "New message from {who}",
+        "newContact": "New contact: {name}",
+        "dealInStage": "Deal \"{title}\" in {stage}",
+        "dealUpdated": "Deal \"{title}\" updated",
+        "broadcastSent": "Broadcast \"{name}\" sent to {count, plural, =1 {# contact} other {# contacts}}",
+        "broadcastStatus": "Broadcast \"{name}\": {status} ({count, plural, =1 {# recipient} other {# recipients}})",
+        "automationTriggered": "Automation \"{name}\" triggered for {who}",
+        "automationFailed": "Automation \"{name}\" failed for {who}",
+        "unknownContact": "Unknown",
+        "aContact": "a contact",
+        "automationFallback": "Automation"
+      }
     },
     "conversationsChart": {
       "title": "Conversations Over Time",
@@ -124,7 +137,8 @@
       "thisWeek": "This week:",
       "lastWeek": "Last week:",
       "noReplies": "No replies recorded yet",
-      "noRepliesHint": "This chart fills in as you reply to customer messages."
+      "noRepliesHint": "This chart fills in as you reply to customer messages.",
+      "avgMinutes": "Avg minutes"
     },
     "emptyState": {
       "title": "Not enough data yet"
@@ -779,6 +793,20 @@
         "progressDesc": "Processing {current} of {total} recipients...",
         "toastFailedPreview": "Failed to load preview data"
       }
+    },
+    "sendErrors": {
+      "fetchContactsFailed": "Failed to fetch contacts: {message}",
+      "fetchContactTagsFailed": "Failed to fetch contact tags: {message}",
+      "notSignedIn": "You are not signed in.",
+      "noAccount": "Your profile is not linked to an account.",
+      "csvLookupFailed": "Failed to look up CSV contacts: {message}",
+      "csvCreateFailed": "Failed to create CSV contacts: {message}",
+      "customFieldFilterFailed": "Custom-field filter failed: {message}",
+      "noContacts": "No contacts found for this audience.",
+      "createFailed": "Failed to create broadcast: {message}",
+      "unknownError": "unknown error",
+      "insertBatchFailed": "Failed to insert recipient batch {batch}: {message}",
+      "fetchRecipientsFailed": "Failed to fetch broadcast recipients"
     }
   },
   "Automations": {
@@ -1130,7 +1158,17 @@
         "filenamePlaceholder": "invoice.pdf",
         "advanceAfterSending": "After sending, advance to",
         "pickNextNode": "Pick a next node…",
-        "none": "— None —"
+        "none": "— None —",
+        "removeSection": "Remove section",
+        "contactFields": {
+          "name": "name",
+          "email": "email",
+          "phone": "phone",
+          "company": "company"
+        },
+        "fileTooLarge": "File is {size} MB — limit is 16 MB.",
+        "fileUploaded": "File uploaded.",
+        "uploadFailed": "Upload failed."
       },
       "categories": {
         "messaging": "Messaging",
@@ -1178,19 +1216,76 @@
           "label": "End",
           "blurb": "Ends the flow"
         }
-      }
+      },
+      "editorView": "Editor view",
+      "slotNext": "Next",
+      "slotTrue": "true",
+      "slotFalse": "false"
     },
     "validation": {
       "noIssues": "No issues. Ready to activate.",
       "summary": "{errorCount} {errorCount, plural, =1 {error} other {errors}}, {warningCount} {warningCount, plural, =1 {warning} other {warnings}}",
-      "jumpToNode": "Jump to node {key}"
+      "jumpToNode": "Jump to node {key}",
+      "issues": {
+        "nameRequired": "Flow name is required.",
+        "entryRequired": "Pick an entry node before activating.",
+        "noNodes": "A flow needs at least one node before activation.",
+        "entryMissing": "Entry node \"{key}\" doesn't exist.",
+        "duplicateNodeKey": "Duplicate node_key \"{key}\".",
+        "unreachable": "Node \"{key}\" is unreachable from the entry node.",
+        "keywordsRequired": "Keyword triggers need at least one keyword.",
+        "keywordsBlank": "{count, plural, =1 {# keyword is} other {# keywords are}} blank — they won't match anything.",
+        "nextRequired": "{nodeType} node must point to a next node.",
+        "nextMissing": "{nodeType} points to non-existent node \"{key}\".",
+        "textRequired": "{nodeType} node needs a text body.",
+        "mediaTypeRequired": "Send-media node needs a media type (image, video, or document).",
+        "mediaFileRequired": "Send-media node needs a file (upload one before activating).",
+        "captionTooLong": "Caption exceeds {max} chars (WhatsApp limit).",
+        "buttonsRequired": "Send-buttons needs at least one button.",
+        "buttonsTooMany": "WhatsApp allows at most {max} buttons per message.",
+        "buttonReplyIdRequired": "Button {n} needs a reply id.",
+        "buttonReplyIdDuplicate": "Duplicate button reply id \"{id}\".",
+        "buttonTitleRequired": "Button {n} needs a title.",
+        "buttonTitleTooLong": "Button {n} title is over {max} chars (WhatsApp limit).",
+        "buttonNextRequired": "Button {n} needs a next node.",
+        "buttonNextMissing": "Button {n} points to non-existent node \"{key}\".",
+        "listButtonLabelRequired": "Send-list needs a button label (the tap-to-expand text).",
+        "rowsRequired": "Send-list needs at least one row.",
+        "rowsTooMany": "Send-list allows at most {max} rows total across sections.",
+        "rowReplyIdRequired": "Row {n} in section {section} needs a reply id.",
+        "rowReplyIdDuplicate": "Duplicate list row id \"{id}\".",
+        "rowTitleRequired": "Row {n} needs a title.",
+        "rowTitleTooLong": "Row {n} title exceeds {max} chars.",
+        "rowDescriptionTooLong": "Row {n} description exceeds {max} chars.",
+        "rowNextRequired": "Row {n} needs a next node.",
+        "rowNextMissing": "Row {n} points to non-existent node \"{key}\".",
+        "promptRequired": "Collect-input needs a prompt to send the customer.",
+        "varKeyRequired": "Collect-input needs a var_key to store the answer under.",
+        "varKeyInvalid": "var_key \"{key}\" must be alphanumeric+underscore and start with a letter or underscore.",
+        "subjectRequired": "Condition needs a subject (var / tag / contact_field).",
+        "subjectKeyRequired": "Condition needs a subject_key (var name, tag id, or field name).",
+        "operatorRequired": "Condition needs an operator.",
+        "operatorValueMissing": "Operator \"{operator}\" usually expects a comparison value — empty value will only match empty subjects.",
+        "branchRequired": "Condition needs a node for the \"{branch}\" branch.",
+        "branchMissing": "Condition's \"{branch}\" branch points to non-existent node \"{key}\".",
+        "modeRequired": "Set-tag needs a mode (add or remove).",
+        "tagRequired": "Set-tag needs a tag to apply.",
+        "unknownNodeType": "Unknown node type \"{type}\"."
+      }
     },
     "editorState": {
       "saved": "Saved.",
       "fixIssues": "Fix the issues below before activating.",
       "statusActivated": "Flow activated.",
       "statusArchived": "Archived.",
-      "statusDraft": "Saved as draft."
+      "statusDraft": "Saved as draft.",
+      "saveFailed": "Save failed",
+      "saveFailedStatus": "Save failed: {status}",
+      "statusFailed": "Status update failed",
+      "statusFailedStatus": "Status update failed: {status}",
+      "deleteConfirm": "Delete \"{name}\"? Any active runs end immediately. This can't be undone.",
+      "deleteFailed": "Delete failed",
+      "deleteFailedStatus": "Delete failed: {status}"
     },
     "summary": {
       "options": "{count} {count, plural, =1 {option} other {options}}",
@@ -1209,6 +1304,26 @@
       "modeRemove": "Remove",
       "tagPicked": "{mode} tag {tag}…",
       "tagNone": "{mode} tag (none picked)"
+    },
+    "header": {
+      "backToFlows": "Back to Flows",
+      "namePlaceholder": "Flow name",
+      "unsavedTitle": "Unsaved changes — hit Save to persist",
+      "edited": "Edited",
+      "runs": "Runs",
+      "delete": "Delete",
+      "pause": "Pause",
+      "activate": "Activate",
+      "fixIssues": "Fix the issues below before activating",
+      "save": "Save",
+      "descriptionPlaceholder": "Add a short description (internal — customers don't see this)",
+      "descriptionAria": "Flow description"
+    },
+    "defaults": {
+      "yes": "Yes",
+      "viewOptions": "View options",
+      "option": "Option",
+      "optionN": "Option {n}"
     }
   },
   "Settings": {
@@ -1260,7 +1375,25 @@
       "removeDialogDesc": "Remove <bold>{name}</bold> from the account? They'll be signed out of this account and given a fresh personal account on their next sign-in. Their login isn't deleted.",
       "cancel": "Cancel",
       "removing": "Removing...",
-      "removeBtn": "Remove member"
+      "removeBtn": "Remove member",
+      "loadMembersFailed": "Failed to load members",
+      "loadInvitationsFailed": "Failed to load invitations",
+      "networkError": "Could not reach the server",
+      "updateRoleFailed": "Failed to update role",
+      "removeFailed": "Failed to remove member",
+      "revokeFailed": "Failed to revoke invitation",
+      "memberAlt": "Member",
+      "removeAria": "Remove {name}",
+      "presence": {
+        "online": "Online — active now",
+        "away": "Away — idle",
+        "offline": "Offline — last seen {lastSeen}",
+        "aWhileAgo": "a while ago",
+        "justNow": "just now",
+        "minutesAgo": "{count, plural, =1 {1 minute ago} other {# minutes ago}}",
+        "hoursAgo": "{count, plural, =1 {1 hour ago} other {# hours ago}}",
+        "daysAgo": "{count, plural, =1 {1 day ago} other {# days ago}}"
+      }
     },
     "invite": {
       "inviteCreated": "Invite created",
@@ -1288,7 +1421,10 @@
       "labelTooLong": "Label must be {max} characters or fewer",
       "copied": "Invite link copied",
       "clipboardBlocked": "Clipboard blocked — copy the link manually",
-      "whatsappMessage": "Join {accountName} on ConstruSuite using this link (valid for {expiresInDays} days): {url}"
+      "whatsappMessage": "Join {accountName} on ConstruSuite using this link (valid for {expiresInDays} days): {url}",
+      "createFailed": "Failed to create invitation",
+      "networkErrorRetry": "Could not reach the server. Try again?",
+      "fallbackAccountName": "our ConstruSuite account"
     },
     "tagsAndFields": {
       "title": "Fields & tags",
@@ -1422,7 +1558,36 @@
       "toastInvalidImage": "Header image must be a JPEG or PNG.",
       "toastImageTooLarge": "Image is {size} MB — Meta's limit is 5 MB.",
       "toastUploadSuccess": "Image uploaded.",
-      "toastUploadFailed": "Upload failed."
+      "toastUploadFailed": "Upload failed.",
+      "editFailedHttp": "Edit failed (HTTP {status})",
+      "submitFailedHttp": "Submit failed (HTTP {status})",
+      "syncFailedHttp": "Sync failed (HTTP {status})",
+      "deleteFailedHttp": "Delete failed (HTTP {status})",
+      "toastSyncMore": ", +{count} more",
+      "qualityScoreTitle": "Meta quality score",
+      "headerTextAria": "Header text",
+      "headerSampleAlt": "Header sample",
+      "removeButtonAria": "Remove button",
+      "categories": {
+        "Marketing": "Marketing",
+        "Utility": "Utility",
+        "Authentication": "Authentication"
+      },
+      "status": {
+        "DRAFT": "Draft",
+        "PENDING": "Pending",
+        "APPROVED": "Approved",
+        "REJECTED": "Rejected",
+        "PAUSED": "Paused",
+        "DISABLED": "Disabled",
+        "IN_APPEAL": "In Appeal",
+        "PENDING_DELETION": "Pending Deletion"
+      },
+      "quality": {
+        "GREEN": "Green",
+        "YELLOW": "Yellow",
+        "RED": "Red"
+      }
     },
     "roles": {
       "admin": "Admin",
@@ -1498,7 +1663,29 @@
       "step4_3": "Paste the <strong class=\"text-foreground\">Webhook Callback URL</strong> from above",
       "step4_4": "Enter the same <strong class=\"text-foreground\">Verify Token</strong> you set here",
       "step4_5": "Subscribe to \"messages\" webhook field",
-      "metaDocs": "Meta WhatsApp API Documentation"
+      "metaDocs": "Meta WhatsApp API Documentation",
+      "toastLoadFailed": "Failed to load WhatsApp configuration",
+      "phoneNumberIdRequired": "Phone Number ID is required",
+      "accessTokenRequired": "Access Token is required for initial setup",
+      "reenterAccessToken": "Please re-enter the Access Token to save changes",
+      "saveFailed": "Failed to save configuration",
+      "savedRegistrationFailed": "Saved, but Meta couldn't register the number: {error}",
+      "savedRegistrationSkipped": "Credentials saved and verified. Inbound registration was skipped (no PIN) — see Registration status below.",
+      "liveNamed": "Live — {name} can now receive events.",
+      "connectedEventsSoon": "WhatsApp connected. Events will start flowing within a minute.",
+      "connectedTo": "Connected to {name}",
+      "apiConnectionSuccess": "API connection successful",
+      "apiConnectionFailed": "API connection failed",
+      "connectionTestFailed": "Connection test failed. Check network and try again.",
+      "numberFullyWired": "Number is fully wired — Meta is delivering events.",
+      "numberNotRegistered": "Number is not fully registered. See the checks below for which step failed.",
+      "verifyEndpointUnreachable": "Could not reach the verification endpoint.",
+      "resetConfirm": "This will delete the current WhatsApp config so you can re-enter it. Continue?",
+      "resetFailed": "Failed to reset configuration",
+      "resetSuccess": "Configuration cleared. You can now re-enter your credentials.",
+      "webhookUrlCopied": "Webhook URL copied to clipboard",
+      "phoneNumberIdPlaceholder": "e.g. 100234567890123",
+      "wabaIdPlaceholder": "e.g. 100234567890456"
     },
     "sections": {
       "overview": "Overview",
@@ -1510,7 +1697,8 @@
       "fields": "Fields & tags",
       "deals": "Deals & currency",
       "members": "Team members",
-      "api": "API keys"
+      "api": "API keys",
+      "quick-replies": "Quick replies"
     },
     "groups": {
       "account": "Account",
@@ -1565,7 +1753,8 @@
       "cancel": "Cancel",
       "signingOut": "Signing out…",
       "signOutEverywhere": "Sign out everywhere",
-      "signOutFailed": "Sign-out failed: {message}"
+      "signOutFailed": "Sign-out failed: {message}",
+      "unknownError": "Unknown error"
     },
     "appearance": {
       "title": "Appearance",
@@ -1604,7 +1793,9 @@
           "name": "Rose",
           "tagline": "Bold and modern — D2C, creator-economy, lifestyle."
         }
-      }
+      },
+      "colorModeAria": "Color mode",
+      "themeIdSr": "Theme id: {id}"
     },
     "security": {
       "title": "Login & security",
@@ -1646,7 +1837,26 @@
       "newKeyTitle": "New API key",
       "newKeyDesc": "Name it after the integration that will use it, and grant only the scopes it needs.",
       "done": "Done",
-      "networkError": "Could not reach the server"
+      "networkError": "Could not reach the server",
+      "scopeDescriptions": {
+        "messages": {
+          "send": "Send WhatsApp messages",
+          "read": "Read messages and their delivery status"
+        },
+        "contacts": {
+          "read": "List and read contacts",
+          "write": "Create and update contacts"
+        },
+        "conversations": {
+          "read": "List and read conversations"
+        },
+        "broadcasts": {
+          "send": "Launch broadcast campaigns"
+        },
+        "webhooks": {
+          "manage": "Register and manage outbound event webhooks"
+        }
+      }
     },
     "deals": {
       "title": "Deals & currency",
@@ -1658,7 +1868,24 @@
       "save": "Save",
       "saving": "Saving...",
       "saveFailed": "Failed to save default currency",
-      "saveSuccess": "Default currency updated"
+      "saveSuccess": "Default currency updated",
+      "currencies": {
+        "USD": "US Dollar",
+        "EUR": "Euro",
+        "GBP": "British Pound",
+        "INR": "Indian Rupee",
+        "AUD": "Australian Dollar",
+        "CAD": "Canadian Dollar",
+        "BRL": "Brazilian Real",
+        "JPY": "Japanese Yen",
+        "CNY": "Chinese Yuan",
+        "AED": "UAE Dirham",
+        "ZAR": "South African Rand",
+        "NGN": "Nigerian Naira",
+        "SGD": "Singapore Dollar",
+        "MXN": "Mexican Peso",
+        "PYG": "Paraguayan Guaraní"
+      }
     },
     "aiConfig": {
       "title": "Agent setup",
@@ -1698,7 +1925,10 @@
       "saveSuccess": "AI assistant saved.",
       "saveFailed": "Failed to save.",
       "removeSuccess": "AI configuration removed.",
-      "removeFailed": "Failed to remove."
+      "removeFailed": "Failed to remove.",
+      "loading": "Loading…",
+      "showKey": "Show key",
+      "hideKey": "Hide key"
     },
     "aiKnowledge": {
       "loadFailed": "Failed to load knowledge base",
@@ -1725,7 +1955,9 @@
       "addDoc": "Add document",
       "reindex": "Reindex",
       "reindexTooltip": "Re-embed all documents (e.g. after adding an embeddings key)",
-      "loading": "Loading…"
+      "loading": "Loading…",
+      "edit": "Edit",
+      "delete": "Delete"
     },
     "evolution": {
       "title": "Evolution API connection",
@@ -1780,6 +2012,70 @@
       "howStep2": "2. Click Connect: ConstruSuite checks the instance (or creates it) and registers its webhook.",
       "howStep3": "3. If the number isn't linked yet, scan the QR code with the phone that holds it.",
       "howStep4": "Text, media, stickers, replies, reactions and deletes are supported. Messages answered from the phone also show up in the inbox. Broadcasts and Meta-approved templates are not available with Evolution."
+    },
+    "navAriaLabel": "Settings sections",
+    "quickReplies": {
+      "title": "Quick replies",
+      "description": "Reusable snippets — plain text or a saved interactive message — that agents can insert from the inbox composer.",
+      "newQuickReply": "New quick reply",
+      "editQuickReply": "Edit quick reply",
+      "empty": "No quick replies yet. Create one to reuse it across conversations.",
+      "nameRequired": "Give the quick reply a name.",
+      "saveFailed": "Couldn't save the quick reply.",
+      "updated": "Quick reply updated.",
+      "created": "Quick reply created.",
+      "deleteConfirm": "Delete this quick reply?",
+      "deleteFailed": "Couldn't delete the quick reply.",
+      "nameLabel": "Name",
+      "namePlaceholder": "e.g. Business hours",
+      "kindText": "Text",
+      "kindInteractive": "Interactive",
+      "textPlaceholder": "The message text to insert",
+      "previewButtons": "[buttons]",
+      "previewList": "[list]",
+      "edit": "Edit",
+      "delete": "Delete",
+      "cancel": "Cancel",
+      "save": "Save"
+    }
+  },
+  "Agents": {
+    "page": {
+      "title": "AI Agents",
+      "description": "Your bring-your-own-key AI agent — set it up, then test it in the playground before it replies to customers in the inbox.",
+      "tabPlayground": "Playground",
+      "tabSetup": "Setup",
+      "tabUsage": "Usage"
+    },
+    "playground": {
+      "notConfigured": "No agent configured yet — finish Setup first.",
+      "replyFailed": "Couldn't get a reply.",
+      "unreachable": "Couldn't reach the agent.",
+      "title": "Playground",
+      "subtitle": "— test replies as if you were a customer",
+      "reset": "Reset",
+      "emptyTitle": "Send a message to see how your agent would reply.",
+      "emptyDesc": "It uses your knowledge base and behaves exactly like the auto-reply bot — including handoff.",
+      "goToSetup": "Not set up yet? Go to Setup",
+      "handoff": "Would hand off to a human here",
+      "thinking": "Thinking…",
+      "placeholder": "Type a customer message…"
+    },
+    "usage": {
+      "loadFailed": "Failed to load usage",
+      "title": "Token usage",
+      "description": "Tokens spent on your provider key by drafts and the auto-reply bot. Counts only — no message content is stored here.",
+      "lastDays": "Last {days} days",
+      "empty": "No AI usage in the last {days} days yet.",
+      "emptyHint": "This fills in as the assistant drafts and auto-replies.",
+      "totalTokens": "Total tokens",
+      "llmCalls": "LLM calls",
+      "autoReply": "Auto-reply",
+      "drafts": "Drafts",
+      "tokensPerDay": "Tokens per day",
+      "byModel": "By model",
+      "modelUsage": "{tokens} tok · {calls, plural, =1 {# call} other {# calls}}",
+      "truncated": "Showing a partial window — usage is high enough that only the most recent records are summarized here."
     }
   }
 }

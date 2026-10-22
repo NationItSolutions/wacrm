@@ -55,11 +55,28 @@ export type ActivityKind =
   | 'automation'
   | 'contact'
 
+/**
+ * Locale-free description of an activity line. The feed renders it via
+ * `Dashboard.activityFeed.items.<key>` so the text follows the UI
+ * language; `text` stays as the pre-formatted English fallback.
+ * Empty-string values mean "unknown" and get a translated fallback.
+ */
+export type ActivityMessage =
+  | { key: 'newMessage'; values: { who: string } }
+  | { key: 'newContact'; values: { name: string } }
+  | { key: 'dealInStage'; values: { title: string; stage: string } }
+  | { key: 'dealUpdated'; values: { title: string } }
+  | { key: 'broadcastSent'; values: { name: string; count: number } }
+  | { key: 'broadcastStatus'; values: { name: string; status: string; count: number } }
+  | { key: 'automationTriggered' | 'automationFailed'; values: { name: string; who: string } }
+
 export interface ActivityItem {
   id: string
   kind: ActivityKind
-  /** Primary line of text rendered in the feed. Pre-formatted. */
+  /** Primary line of text rendered in the feed. Pre-formatted (English). */
   text: string
+  /** Structured form of `text` for localized rendering. */
+  message?: ActivityMessage
   /** ISO timestamp the item happened at, drives relative-time + sort. */
   at: string
   /** Optional deep-link for the whole row (not all items have a target). */

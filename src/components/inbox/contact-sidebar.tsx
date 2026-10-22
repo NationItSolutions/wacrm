@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
 import { useTranslations } from "next-intl";
+import { useDateLocale } from "@/hooks/use-date-locale";
 
 interface ContactSidebarProps {
   contact: Contact | null;
@@ -28,6 +29,7 @@ interface ContactSidebarProps {
 export function ContactSidebar({ contact }: ContactSidebarProps) {
   const tSidebar = useTranslations("Inbox.sidebar");
   const tThread = useTranslations("Inbox.messageThread");
+  const { dateLocale } = useDateLocale();
 
   const { accountId } = useAuth();
   const [copied, setCopied] = useState(false);
@@ -289,7 +291,9 @@ export function ContactSidebar({ contact }: ContactSidebarProps) {
                       {note.note_text}
                     </p>
                     <p className="mt-1 text-[10px] text-muted-foreground">
-                      {format(new Date(note.created_at), "MMM d, yyyy HH:mm")}
+                      {/* "PP" is date-fns' localized medium date — identical
+                          to the old "MMM d, yyyy" in English, "d MMM y" in Spanish. */}
+                      {format(new Date(note.created_at), "PP HH:mm", { locale: dateLocale })}
                     </p>
                   </div>
                 ))}

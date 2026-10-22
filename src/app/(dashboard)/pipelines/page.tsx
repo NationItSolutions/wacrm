@@ -36,13 +36,16 @@ import { useTranslations } from "next-intl";
 // agent+. The two CTAs gate on different `useCan` capabilities,
 // not on different copy.
 
-// Spec-defined seed — name and color per the product spec.
+// Spec-defined seed — name and color per the product spec. Names are
+// `Pipelines.page.defaultStages.*` keys, resolved in the active UI
+// language at seed time (the rows are ordinary editable user data after
+// that): New Lead, Qualified, Proposal Sent, Negotiation, Won.
 const SPEC_DEFAULT_STAGES = [
-  { name: "New Lead", color: "#3b82f6", position: 0 }, // blue
-  { name: "Qualified", color: "#eab308", position: 1 }, // yellow
-  { name: "Proposal Sent", color: "#f97316", position: 2 }, // orange
-  { name: "Negotiation", color: "#8b5cf6", position: 3 }, // purple
-  { name: "Won", color: "#22c55e", position: 4 }, // green
+  { key: "newLead", color: "#3b82f6", position: 0 }, // blue
+  { key: "qualified", color: "#eab308", position: 1 }, // yellow
+  { key: "proposalSent", color: "#f97316", position: 2 }, // orange
+  { key: "negotiation", color: "#8b5cf6", position: 3 }, // purple
+  { key: "won", color: "#22c55e", position: 4 }, // green
 ];
 
 export default function PipelinesPage() {
@@ -120,7 +123,7 @@ export default function PipelinesPage() {
 
     const { data: pipeline, error } = await supabase
       .from("pipelines")
-      .insert({ user_id: user.id, account_id: accountId, name: "Sales Pipeline" })
+      .insert({ user_id: user.id, account_id: accountId, name: t("defaultPipelineName") })
       .select()
       .single();
 
@@ -131,14 +134,14 @@ export default function PipelinesPage() {
 
     const stagesPayload = SPEC_DEFAULT_STAGES.map((s) => ({
       pipeline_id: pipeline.id,
-      name: s.name,
+      name: t(`defaultStages.${s.key}`),
       color: s.color,
       position: s.position,
     }));
     await supabase.from("pipeline_stages").insert(stagesPayload);
 
     return pipeline as Pipeline;
-  }, [supabase, accountId]);
+  }, [supabase, accountId, t]);
 
   // Initial load + seed-if-empty
   useEffect(() => {
@@ -281,7 +284,7 @@ export default function PipelinesPage() {
 
     const stagesPayload = SPEC_DEFAULT_STAGES.map((s) => ({
       pipeline_id: pipeline.id,
-      name: s.name,
+      name: t(`defaultStages.${s.key}`),
       color: s.color,
       position: s.position,
     }));
@@ -370,7 +373,7 @@ export default function PipelinesPage() {
           <GatedButton
             variant="outline"
             canAct={canEditSettings}
-            gateReason="create pipelines"
+            gateReason={t("gateCreatePipelines")}
             onClick={() => setNewPipelineOpen(true)}
             className="border-border bg-card text-foreground hover:bg-muted"
           >
@@ -379,7 +382,7 @@ export default function PipelinesPage() {
           </GatedButton>
           <GatedButton
             canAct={canCreateDeals}
-            gateReason="create deals"
+            gateReason={t("gateCreateDeals")}
             disabled={!selectedPipelineId || stages.length === 0}
             onClick={() => handleAddDeal()}
             className="bg-primary text-primary-foreground hover:bg-primary/90"
@@ -402,7 +405,7 @@ export default function PipelinesPage() {
           </p>
           <GatedButton
             canAct={canEditSettings}
-            gateReason="create pipelines"
+            gateReason={t("gateCreatePipelines")}
             onClick={() => setNewPipelineOpen(true)}
             className="mt-4 bg-primary text-primary-foreground hover:bg-primary/90"
           >

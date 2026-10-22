@@ -137,7 +137,7 @@ function MessageContent({ message, t }: { message: Message, t: ReturnType<typeof
   if (message.deleted_at) {
     return (
       <p className="whitespace-pre-wrap break-words text-sm italic text-muted-foreground">
-        🚫 This message was deleted
+        {t("deleted")}
       </p>
     );
   }
@@ -147,11 +147,11 @@ function MessageContent({ message, t }: { message: Message, t: ReturnType<typeof
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={message.media_url}
-          alt="Sticker"
+          alt={t("sticker")}
           className="size-32 object-contain"
         />
       ) : (
-        <MediaUnavailable label="Sticker" t={t} />
+        <MediaUnavailable label={t("sticker")} t={t} />
       );
 
     case "text":
@@ -165,7 +165,7 @@ function MessageContent({ message, t }: { message: Message, t: ReturnType<typeof
       return (
         <div>
           {message.media_url ? (
-            <MediaImage url={message.media_url} alt="Shared image" />
+            <MediaImage url={message.media_url} alt={t("sharedImage")} />
           ) : (
             <MediaUnavailable label={t("photo")} t={t} />
           )}

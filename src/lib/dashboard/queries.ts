@@ -319,6 +319,7 @@ export async function loadActivity(db: DB, limit = 20): Promise<ActivityItem[]> 
       id: `msg-${m.id}`,
       kind: 'message',
       text: `New message from ${who}`,
+      message: { key: 'newMessage', values: { who: contact?.name || contact?.phone || '' } },
       at: m.created_at,
       href: `/inbox?c=${m.conversation_id}`,
     })
@@ -329,6 +330,7 @@ export async function loadActivity(db: DB, limit = 20): Promise<ActivityItem[]> 
       id: `contact-${c.id}`,
       kind: 'contact',
       text: `New contact: ${c.name || c.phone}`,
+      message: { key: 'newContact', values: { name: c.name || c.phone } },
       at: c.created_at,
       href: '/contacts',
     })
@@ -347,6 +349,9 @@ export async function loadActivity(db: DB, limit = 20): Promise<ActivityItem[]> 
       text: stage?.name
         ? `Deal "${d.title}" in ${stage.name}`
         : `Deal "${d.title}" updated`,
+      message: stage?.name
+        ? { key: 'dealInStage', values: { title: d.title, stage: stage.name } }
+        : { key: 'dealUpdated', values: { title: d.title } },
       at: d.updated_at,
       href: '/pipelines',
     })
@@ -367,6 +372,13 @@ export async function loadActivity(db: DB, limit = 20): Promise<ActivityItem[]> 
       id: `broadcast-${b.id}`,
       kind: 'broadcast',
       text: `Broadcast "${b.name}" ${label}`,
+      message:
+        b.status === 'sent'
+          ? { key: 'broadcastSent', values: { name: b.name, count: b.total_recipients } }
+          : {
+              key: 'broadcastStatus',
+              values: { name: b.name, status: b.status, count: b.total_recipients },
+            },
       at: b.created_at,
       href: '/broadcasts',
     })
@@ -388,6 +400,13 @@ export async function loadActivity(db: DB, limit = 20): Promise<ActivityItem[]> 
       id: `auto-${l.id}`,
       kind: 'automation',
       text: `Automation "${autoName}" ${l.status === 'failed' ? 'failed for' : 'triggered for'} ${who}`,
+      message: {
+        key: l.status === 'failed' ? 'automationFailed' : 'automationTriggered',
+        values: {
+          name: automation?.name || '',
+          who: contact?.name || contact?.phone || '',
+        },
+      },
       at: l.created_at,
     })
   }
