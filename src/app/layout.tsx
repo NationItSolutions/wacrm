@@ -65,7 +65,7 @@ export const metadata: Metadata = {
     template: "%s — ConstruSuite",
   },
   description:
-    "ConstruSuite — integrated management system: shared WhatsApp inbox, contacts, sales pipelines, broadcasts and automations.",
+    "ConstruSuite — sistema de gestión integrado: bandeja compartida de WhatsApp, contactos, embudos de venta, difusiones y automatizaciones.",
   robots: {
     index: false,
     follow: false,

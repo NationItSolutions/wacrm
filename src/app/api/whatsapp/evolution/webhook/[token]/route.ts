@@ -9,6 +9,7 @@ import {
 import { uploadAccountMediaServer } from '@/lib/storage/upload-media-server'
 import {
   processInboundMessage,
+  recordOutboundFromPhone,
   handleProviderStatusUpdate,
   markMessageDeletedByProviderId,
   type NormalizedInbound,
@@ -57,9 +58,16 @@ interface EvolutionKey {
   id?: string
   remoteJid?: string
   fromMe?: boolean
-  /** Real phone JID when remoteJid is an opaque `@lid` id (newer WhatsApp). */
+  /** Real phone JID of the SENDER when remoteJid is an opaque `@lid` id (Baileys 6.7). */
   senderPn?: string
+  /** Alternate (phone) JID of the chat when remoteJid is `@lid` (Baileys 7 / Evolution 2.3+). */
+  remoteJidAlt?: string
 }
+
+/** A normalized message plus whether the business itself sent it (from the phone). */
+type EvolutionNormalized = NormalizedInbound & { fromMe: boolean }
+
+const PN_SUFFIX = '@s.whatsapp.net'
 
 /** Dig a quoted-message stanza id out of whichever sub-message carries contextInfo. */
 function extractReplyToId(message: Record<string, unknown>): string | null {
@@ -85,35 +93,47 @@ const MEDIA_KINDS: Record<string, InboundContentType> = {
 }
 
 /**
- * Turn one Evolution message payload into a NormalizedInbound, or null
- * to skip (outbound echo, group/status JID, unsupported shape).
+ * Turn one Evolution message payload into a normalized message, or null
+ * to skip (group/status JID, unresolvable @lid, unsupported shape).
+ * `fromMe` messages (sent by the business from the phone) are returned
+ * too, flagged, with `fromPhone` = the customer's phone (the chat).
  *
- * Media bytes are NOT fetched here in stage 1 — a media message records
- * its caption/placeholder with `mediaUrl: null`; stage 2 wires the
- * getBase64 → upload path.
+ * Media bytes are not fetched here — a media message records its
+ * caption with `mediaUrl: null`; resolveInboundMedia fills the URL.
  */
-function normalizeEvolutionMessage(data: Record<string, unknown>): NormalizedInbound | null {
+function normalizeEvolutionMessage(data: Record<string, unknown>): EvolutionNormalized | null {
   const key = (data.key as EvolutionKey | undefined) ?? undefined
-  if (!key?.id || key.fromMe) return null
+  if (!key?.id) return null
+  const fromMe = !!key.fromMe
   const remoteJid = String(key.remoteJid ?? '')
   const senderPn = String(key.senderPn ?? '')
+  const remoteJidAlt = String(key.remoteJidAlt ?? '')
   // WhatsApp now addresses many 1:1 chats with an opaque `@lid` id whose
-  // leading number is NOT the real phone — the actual phone arrives in
-  // `key.senderPn`. Prefer senderPn, fall back to a direct
-  // `@s.whatsapp.net` remoteJid, and skip groups (@g.us), status
-  // broadcasts, and any @lid we can't resolve to a phone.
-  const phoneJid = senderPn.endsWith('@s.whatsapp.net')
-    ? senderPn
-    : remoteJid.endsWith('@s.whatsapp.net')
-      ? remoteJid
-      : ''
-  if (!phoneJid) return null
+  // leading number is NOT the real phone. The chat's phone JID arrives
+  // in `remoteJidAlt` (Baileys 7) or, for messages the customer sent,
+  // `senderPn` (Baileys 6.7). For fromMe messages senderPn is OUR number,
+  // so it is never used there. Groups (@g.us), status broadcasts and any
+  // @lid we can't resolve to a phone are skipped.
+  const phoneJid = remoteJid.endsWith(PN_SUFFIX)
+    ? remoteJid
+    : remoteJidAlt.endsWith(PN_SUFFIX)
+      ? remoteJidAlt
+      : !fromMe && senderPn.endsWith(PN_SUFFIX)
+        ? senderPn
+        : ''
+  if (!phoneJid) {
+    if (remoteJid.endsWith('@lid')) {
+      console.warn('[evolution-webhook] @lid chat without a phone JID; skipped', key.id)
+    }
+    return null
+  }
 
   const fromPhone = phoneJid.split('@')[0]
   const providerMessageId = key.id
   const tsRaw = Number(data.messageTimestamp ?? 0)
   const timestampMs = tsRaw > 0 ? tsRaw * 1000 : new Date().getTime()
-  const senderName = (data.pushName as string | undefined) || undefined
+  // On fromMe messages pushName is the business's own profile name.
+  const senderName = fromMe ? undefined : (data.pushName as string | undefined) || undefined
   let message = (data.message as Record<string, unknown> | undefined) ?? {}
   // Unwrap disappearing / view-once / caption envelopes so we see the
   // real inner payload (image, location, etc.).
@@ -131,6 +151,7 @@ function normalizeEvolutionMessage(data: Record<string, unknown>): NormalizedInb
   }
 
   const base = {
+    fromMe,
     providerMessageId,
     fromPhone,
     senderName,
@@ -190,14 +211,14 @@ function normalizeEvolutionMessage(data: Record<string, unknown>): NormalizedInb
     return {
       ...base,
       contentType: 'location',
-      contentText: `📍 ${parts.join(' — ') || 'Location'}${coords}`,
+      contentText: `📍 ${parts.join(' — ') || 'Ubicación'}${coords}`,
     }
   }
 
   // Contact (vCard) — no dedicated content_type, so render as text.
   const contactMessage = message.contactMessage as Record<string, unknown> | undefined
   if (contactMessage) {
-    const name = (contactMessage.displayName as string | undefined) || 'Contact'
+    const name = (contactMessage.displayName as string | undefined) || 'Contacto'
     const vcard = String(contactMessage.vcard ?? '')
     const tel = vcard.match(/TEL[^:]*:\s*([+\d][\d\s()-]+)/i)?.[1]?.trim()
     return {
@@ -210,7 +231,7 @@ function normalizeEvolutionMessage(data: Record<string, unknown>): NormalizedInb
   if (contactsArrayMessage) {
     const list = (contactsArrayMessage.contacts as Record<string, unknown>[] | undefined) ?? []
     const names = list.map((c) => c.displayName).filter(Boolean).join(', ')
-    return { ...base, contentType: 'text', contentText: `👤 ${names || 'Contacts'}` }
+    return { ...base, contentType: 'text', contentText: `👤 ${names || 'Contactos'}` }
   }
 
   // Media (bytes fetched by resolveInboundMedia before persistence).
@@ -292,7 +313,7 @@ async function resolveInboundMedia(
   binding: EvolutionBinding,
   accountId: string,
   raw: Record<string, unknown>,
-  normalized: NormalizedInbound,
+  normalized: EvolutionNormalized,
 ): Promise<void> {
   try {
     const key = raw.key as EvolutionMessageKey
@@ -341,6 +362,10 @@ async function resolveInboundMedia(
     console.error('[evolution-webhook] media resolve failed:', err)
   }
 }
+
+/** Pause before handling a fromMe echo, so a send wacrm itself just made
+ *  through the API has time to be stored (then it's skipped as known). */
+const FROM_ME_SETTLE_MS = 4000
 
 /** Map Evolution / Baileys ack values onto messages.status. */
 function mapEvolutionStatus(raw: unknown): string | null {
@@ -421,17 +446,26 @@ export async function POST(
             : data
               ? [data as Record<string, unknown>]
               : []
+        let settled = false
         for (const m of messages) {
           const normalized = normalizeEvolutionMessage(m)
-          if (normalized) {
-            if (MEDIA_CONTENT_TYPES.has(normalized.contentType) && !normalized.mediaUrl) {
-              await resolveInboundMedia(binding, accountId, m, normalized)
-            }
+          if (!normalized) continue
+          if (normalized.fromMe && !settled) {
+            await new Promise((r) => setTimeout(r, FROM_ME_SETTLE_MS))
+            settled = true
+          }
+          if (MEDIA_CONTENT_TYPES.has(normalized.contentType) && !normalized.mediaUrl) {
+            await resolveInboundMedia(binding, accountId, m, normalized)
+          }
+          const { fromMe, ...msg } = normalized
+          if (fromMe) {
+            await recordOutboundFromPhone({ accountId, msg })
+          } else {
             await processInboundMessage({
               accountId,
               ownerUserId,
               provider: 'evolution',
-              msg: normalized,
+              msg,
             })
           }
         }
@@ -444,9 +478,14 @@ export async function POST(
         for (const u of updates) {
           const key = u.key as EvolutionKey | undefined
           const providerMessageId = (u.keyId as string | undefined) ?? key?.id
-          const status = mapEvolutionStatus(
-            u.status ?? (u.update as Record<string, unknown> | undefined)?.status,
-          )
+          const rawStatus =
+            u.status ?? (u.update as Record<string, unknown> | undefined)?.status
+          // v2 reports a revoke as an update with status DELETED.
+          if (providerMessageId && String(rawStatus ?? '').toUpperCase() === 'DELETED') {
+            await markMessageDeletedByProviderId({ providerMessageId })
+            continue
+          }
+          const status = mapEvolutionStatus(rawStatus)
           if (providerMessageId && status) {
             await handleProviderStatusUpdate({
               providerMessageId,
@@ -462,8 +501,11 @@ export async function POST(
             ? [data as Record<string, unknown>]
             : []
         for (const d of deletes) {
+          // v2 sends the bare message key as `data` ({ remoteJid, fromMe, id });
+          // older shapes wrap it in `key` or use `keyId`.
           const key = d.key as EvolutionKey | undefined
-          const providerMessageId = (d.keyId as string | undefined) ?? key?.id
+          const providerMessageId =
+            (d.keyId as string | undefined) ?? key?.id ?? (d.id as string | undefined)
           if (providerMessageId) {
             await markMessageDeletedByProviderId({ providerMessageId })
           }

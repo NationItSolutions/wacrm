@@ -365,9 +365,9 @@
         "notes": "Notas",
         "custom": "Campos personalizados",
         "deals": "Negocios",
-      "noTags": "Sin etiquetas",
-      "noDeals": "Sin negocios",
-      "addNotePlaceholder": "Agregar una nota..."
+        "noTags": "Sin etiquetas",
+        "noDeals": "Sin negocios",
+        "addNotePlaceholder": "Agregar una nota..."
       },
       "actions": {
         "edit": "Editar",
@@ -1344,13 +1344,11 @@
       "deleteLocallyAria": "Eliminar plantilla localmente",
       "deleteMetaLocallyTitle": "Eliminar de Meta y localmente",
       "deleteLocallyTitle": "Eliminar localmente",
-
       "dialogEditTitle": "Editar plantilla de mensaje",
       "dialogNewTitle": "Nueva plantilla de mensaje",
       "dialogEditDesc": "Guarda tus cambios para reenviarla a Meta. El estado volverá a PENDING durante la revisión.",
       "dialogNewDesc": "Crea una plantilla y envíala a Meta para su aprobación. Una vez aprobada, podrás usarla en difusiones y en la bandeja de entrada.",
       "authWarning": "Las plantillas de tipo AUTHENTICATION tienen un cuerpo fijo + un botón OTP con una estructura que requiere otro editor. Por ahora créalas en Meta WhatsApp Manager y usa <bold>Sincronizar desde Meta</bold> para traerlas.",
-
       "templateName": "Nombre de la plantilla",
       "namePlaceholder": "p. ej. order_confirmation",
       "nameFixed": "El nombre queda fijo una vez que la plantilla existe en Meta — crea una nueva plantilla para cambiarlo.",
@@ -1359,7 +1357,6 @@
       "language": "Idioma",
       "langFixed": "El idioma queda fijo una vez que la plantilla existe en Meta.",
       "langHint": "Debe coincidir exactamente con el código en Meta — <code>en_US</code> y <code>en</code> son distintos.",
-
       "header": "Encabezado",
       "headerNone": "Ninguno",
       "headerText": "Texto",
@@ -1369,7 +1366,6 @@
       "headerTextPlaceholder": "Texto del encabezado (máx. 60 caracteres, {{1}} opcional)",
       "headerSampleAria": "Valor de ejemplo para la variable del encabezado",
       "headerSamplePlaceholder": "Valor de ejemplo para {{1}} (obligatorio para la revisión de Meta)",
-
       "uploadImage": "Subir imagen",
       "uploadHint": "JPEG o PNG, ≤5 MB",
       "mediaUrlPlaceholder": "https://… (o pega un enlace público de {format})",
@@ -1377,17 +1373,14 @@
       "mediaHint": "Debe ser un enlace HTTPS de acceso público. Meta lo obtiene una vez durante la revisión, así que debe permanecer activo por ~24 h.",
       "videoHint": " Recomendado: MP4 / 3GPP, ≤16 MB, ≤60 segundos.",
       "documentHint": " Recomendado: PDF, ≤100 MB.",
-
       "bodyText": "Texto del cuerpo",
       "bodyPlaceholder": "Hola {{1}}, tu pedido {{2}} está confirmado.",
       "bodyHint": "Usa {{1}}, {{2}} para las variables (deben ser contiguas y empezar en {{1}}).",
       "sampleValues": "Valores de ejemplo (Meta los usa para revisar tu plantilla)",
       "sampleAria": "Valor de ejemplo para la variable del cuerpo {var}",
       "samplePlaceholder": "Ejemplo para {var}",
-
       "footer": "Pie de página (opcional)",
       "footerPlaceholder": "Texto de pie de página opcional (máx. 60 caracteres)",
-
       "buttons": "Botones (opcional)",
       "addButton": "Agregar botón",
       "buttonsLimit": "Hasta {max} botones. Los botones QUICK_REPLY deben ir antes de los botones de URL / teléfono / copiar código.",
@@ -1400,7 +1393,6 @@
       "urlSamplePlaceholder": "Valor de ejemplo para {{1}} (obligatorio cuando la URL tiene una variable)",
       "phonePlaceholder": "+15551234567",
       "codePlaceholder": "Código de ejemplo (p. ej. SUMMER20)",
-
       "cancel": "Cancelar",
       "saving": "Guardando…",
       "submitting": "Enviando…",
@@ -1409,13 +1401,11 @@
       "saveTemplate": "Guardar plantilla",
       "evolutionHint": "Se guarda localmente y se envía como texto — sin aprobación de Meta.",
       "toastSavedLocal": "Plantilla guardada",
-
       "deleteDialogTitle": "¿Eliminar plantilla?",
       "deleteMetaDesc": "\"{name}\" se eliminará de Meta y de ConstruSuite. Las difusiones activas que usen esta plantilla comenzarán a fallar en su próximo envío. Esto no se puede deshacer.",
       "deleteLocalDesc": "\"{name}\" se eliminará de ConstruSuite. Nunca se envió a Meta, así que no se necesita limpieza remota.",
       "deleting": "Eliminando…",
       "delete": "Eliminar",
-
       "toastLoadFailed": "No se pudieron cargar las plantillas",
       "toastSubmitFailed": "No se pudo enviar",
       "toastSubmitEditSuccess": "Edición enviada — Meta suele revisar en un plazo de 24 horas.",
@@ -1554,7 +1544,6 @@
       "profileSaved": "Perfil guardado",
       "emailChangeFailed": "El cambio de correo falló: {message}",
       "profileSavedEmailCheck": "Perfil guardado — revisa tu correo para confirmar el cambio de dirección",
-
       "passwordTitle": "Contraseña",
       "passwordDesc": "Usa al menos {min} caracteres. Seguirás con la sesión iniciada en este dispositivo después de cambiarla.",
       "currentPassword": "Contraseña actual",
@@ -1568,7 +1557,6 @@
       "currentPasswordIncorrect": "La contraseña actual es incorrecta",
       "passwordUpdateFailed": "La actualización de la contraseña falló: {message}",
       "passwordUpdated": "Contraseña actualizada",
-
       "sessionsTitle": "Sesiones activas",
       "sessionsDesc": "Cierra la sesión en todos los dispositivos donde has iniciado sesión — incluido este. Útil si perdiste una computadora portátil o compartiste tu contraseña.",
       "signOutAll": "Cerrar sesión en todos los dispositivos",
@@ -1738,6 +1726,60 @@
       "reindex": "Reindexar",
       "reindexTooltip": "Volver a generar embeddings de todos los documentos (p. ej. después de agregar una clave de embeddings)",
       "loading": "Cargando…"
+    },
+    "evolution": {
+      "title": "Conexión con Evolution API",
+      "description": "Conecta ConstruSuite a tu servidor de Evolution API. ConstruSuite registra su webhook de entrada en la instancia automáticamente.",
+      "statusLabel": "Estado:",
+      "statusConnected": "Conectado",
+      "statusLoading": "Cargando…",
+      "state": {
+        "open": "Conectado",
+        "connecting": "Conectando",
+        "close": "Desconectado — escanea el código QR",
+        "unknown": "Sin configurar"
+      },
+      "baseUrl": "URL del servidor",
+      "baseUrlPlaceholder": "https://evolution.tu-servidor.com",
+      "instanceName": "Nombre de la instancia",
+      "instancePlaceholder": "comercial",
+      "instanceHint": "Si la instancia no existe en el servidor, se crea automáticamente (requiere la API key global).",
+      "apiKey": "API key",
+      "apiKeyPlaceholder": "API key global o de la instancia",
+      "apiKeyHint": "Se guarda cifrada (AES-256-GCM). Vuelve a ingresarla para cambiarla.",
+      "connecting": "Conectando…",
+      "connect": "Conectar",
+      "reconnect": "Reconectar / Guardar",
+      "disconnect": "Desconectar",
+      "confirmDisconnect": "¿Desconectar esta instancia de Evolution de ConstruSuite? El teléfono sigue vinculado en el servidor de Evolution.",
+      "toastConnected": "WhatsApp conectado con Evolution API.",
+      "toastRequiredFields": "La URL del servidor y el nombre de la instancia son obligatorios.",
+      "toastApiKeyRequired": "La API key es obligatoria.",
+      "toastWebhookFailed": "Conectado, pero no se pudo configurar el webhook automáticamente. Reintenta o configúralo a mano en la instancia.",
+      "toastInstanceCreated": "Instancia creada en el servidor. Escanea el código QR para vincular el teléfono.",
+      "toastScanQr": "Guardado. Escanea el código QR para terminar de conectar.",
+      "toastDisconnected": "Desconectado.",
+      "toastDisconnectFailed": "No se pudo desconectar.",
+      "toastConnectionFailed": "Falló la conexión.",
+      "errors": {
+        "missing_fields": "La URL del servidor, la API key y el nombre de la instancia son obligatorios.",
+        "invalid_instance_name": "Nombre de instancia inválido: hasta 64 caracteres, sin / \\ ? # %.",
+        "url_not_allowed": "Esa URL no está permitida. Usa la dirección pública del servidor de Evolution.",
+        "unreachable": "No se pudo llegar al servidor de Evolution. Revisa la URL y la API key.",
+        "unauthorized": "Evolution rechazó la API key.",
+        "create_needs_global_key": "La instancia no existe y esta API key no puede crearla. Usa la API key global del servidor.",
+        "create_failed": "La instancia no existe y no se pudo crear en el servidor.",
+        "save_failed": "No se pudo guardar la configuración.",
+        "disconnect_failed": "No se pudo desconectar."
+      },
+      "scanTitle": "Escanea para conectar",
+      "scanDescription": "En el teléfono: WhatsApp → Dispositivos vinculados → Vincular un dispositivo, y escanea este código. Se actualiza solo.",
+      "qrAlt": "Código QR para vincular WhatsApp",
+      "howTitle": "Cómo funciona",
+      "howStep1": "1. Pega la URL del servidor de Evolution, el nombre de la instancia y la API key.",
+      "howStep2": "2. Haz clic en Conectar: ConstruSuite verifica la instancia (o la crea) y registra su webhook.",
+      "howStep3": "3. Si el número todavía no está vinculado, escanea el código QR con el teléfono que lo tiene.",
+      "howStep4": "Se admiten textos, archivos, stickers, respuestas, reacciones y mensajes eliminados. Lo que se responde desde el teléfono también aparece en la bandeja. Las difusiones y las plantillas aprobadas por Meta no están disponibles con Evolution."
     }
   }
 }

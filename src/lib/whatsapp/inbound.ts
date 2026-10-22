@@ -191,6 +191,12 @@ export async function processInboundMessage(args: {
     )
   }
 
+  // Providers can redeliver the same message (webhook retries, Baileys
+  // re-emitting after a reconnect). One provider id → one row.
+  if (await lookupInternalIdByProviderId(msg.providerMessageId, conversationId)) {
+    return
+  }
+
   const contentType = INSERTABLE_CONTENT_TYPES.has(msg.contentType) ? msg.contentType : 'text'
 
   // First-ever inbound from this contact? (count before insert)
@@ -301,6 +307,89 @@ export async function processInboundMessage(args: {
     content_type: contentType,
     text: msg.contentText,
   })
+}
+
+// ============================================================
+// Messages the business sent from the phone itself.
+//
+// With Evolution (Baileys) the number stays usable in the WhatsApp app,
+// so a salesperson may answer a lead straight from the phone. Evolution
+// reports those as MESSAGES_UPSERT with `key.fromMe`; without this the
+// CRM thread would only show the customer's side. Messages wacrm sent
+// through the API are already stored under the same provider id and
+// are skipped. No automations / flows / AI run for these (a human just
+// answered) — instead, like an in-app agent reply, an active flow run
+// for the contact is paused.
+// ============================================================
+
+export async function recordOutboundFromPhone(args: {
+  accountId: string
+  /** Normalized message; `fromPhone` holds the CHAT's phone (the customer). */
+  msg: NormalizedInbound
+}): Promise<void> {
+  const { accountId, msg } = args
+  if (msg.contentType === 'reaction') return
+  const db = supabaseAdmin()
+
+  // Don't create a contact name from our own pushName — pass no name.
+  const { conversationId, contactId } = await resolveConversationByPhone(
+    db,
+    accountId,
+    msg.fromPhone,
+    undefined,
+  )
+
+  if (await lookupInternalIdByProviderId(msg.providerMessageId, conversationId)) {
+    return // sent from wacrm (already stored) or a redelivery
+  }
+
+  let replyToInternalId: string | null = null
+  if (msg.replyToProviderMessageId) {
+    replyToInternalId = await lookupInternalIdByProviderId(
+      msg.replyToProviderMessageId,
+      conversationId,
+    )
+  }
+
+  const contentType = INSERTABLE_CONTENT_TYPES.has(msg.contentType) ? msg.contentType : 'text'
+  const { error: msgError } = await db.from('messages').insert({
+    conversation_id: conversationId,
+    sender_type: 'agent',
+    content_type: contentType,
+    content_text: msg.contentText,
+    media_url: msg.mediaUrl,
+    message_id: msg.providerMessageId,
+    status: 'sent',
+    created_at: new Date(msg.timestampMs).toISOString(),
+    reply_to_message_id: replyToInternalId,
+  })
+  if (msgError) {
+    console.error('[inbound] outbound-from-phone insert failed:', msgError)
+    return
+  }
+
+  // Answering from the phone also reads the chat on WhatsApp.
+  await db
+    .from('conversations')
+    .update({
+      last_message_text: msg.contentText || `[${msg.contentType}]`,
+      last_message_at: new Date(msg.timestampMs).toISOString(),
+      unread_count: 0,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', conversationId)
+
+  const { error: pauseErr } = await db
+    .from('flow_runs')
+    .update({
+      status: 'paused_by_agent',
+      ended_at: new Date().toISOString(),
+      end_reason: 'agent_replied',
+    })
+    .eq('account_id', accountId)
+    .eq('contact_id', contactId)
+    .eq('status', 'active')
+  if (pauseErr) console.error('[inbound] pause-on-phone-reply failed:', pauseErr.message)
 }
 
 // ============================================================

@@ -2,7 +2,12 @@ import { NextResponse } from 'next/server'
 import crypto from 'crypto'
 import { requireRole, toErrorResponse } from '@/lib/auth/account'
 import { encrypt, decrypt } from '@/lib/whatsapp/encryption'
-import { evoConnectionState, evoSetWebhook } from '@/lib/whatsapp/evolution-api'
+import {
+  evoConnectionState,
+  evoCreateInstance,
+  evoSetWebhook,
+  EvolutionApiError,
+} from '@/lib/whatsapp/evolution-api'
 import { assertPublicHttpUrl, UrlNotAllowedError } from '@/lib/whatsapp/url-guard'
 
 // Events wacrm consumes from the Evolution instance.
@@ -35,10 +40,15 @@ function siteUrl(request: Request): string {
  *
  * Body: { base_url, api_key, instance_name }
  *
- * Connects this account to a REMOTE Evolution API instance the user
- * already runs: verifies reachability + credentials, registers wacrm's
+ * Connects this account to an instance on a REMOTE Evolution API server
+ * the user runs: verifies reachability + credentials, registers wacrm's
  * inbound webhook on the instance, and upserts the whatsapp_config row
- * (provider='evolution'). Does NOT create the instance.
+ * (provider='evolution'). If the instance doesn't exist yet (404) it is
+ * created — that needs the server's GLOBAL api key — and the settings UI
+ * then polls /state for the QR to link the phone.
+ *
+ * Error responses carry a stable `code` the UI translates; `error` stays
+ * as an English fallback for API consumers.
  */
 export async function POST(request: Request) {
   try {
@@ -69,7 +79,19 @@ export async function POST(request: Request) {
 
     if (!baseUrl || !instance || !apiKey || !encryptedKey) {
       return NextResponse.json(
-        { error: 'base_url, api_key and instance_name are required' },
+        { error: 'base_url, api_key and instance_name are required', code: 'missing_fields' },
+        { status: 400 },
+      )
+    }
+
+    // Evolution instance names end up in URL paths (encoded), but path
+    // separators / query chars / control chars are never legitimate.
+    if (instance.length > 64 || /[/\\?#%\x00-\x1f]/.test(instance)) {
+      return NextResponse.json(
+        {
+          error: 'instance_name must be at most 64 characters and cannot contain / \\ ? # %',
+          code: 'invalid_instance_name',
+        },
         { status: 400 },
       )
     }
@@ -81,7 +103,7 @@ export async function POST(request: Request) {
       await assertPublicHttpUrl(baseUrl)
     } catch (err) {
       if (err instanceof UrlNotAllowedError) {
-        return NextResponse.json({ error: err.message }, { status: 400 })
+        return NextResponse.json({ error: err.message, code: 'url_not_allowed' }, { status: 400 })
       }
       throw err
     }
@@ -89,6 +111,7 @@ export async function POST(request: Request) {
     // Verify reachability + credentials before saving anything. Don't echo
     // the upstream response body back to the client (info-leak surface).
     let state = 'unknown'
+    let created = false
     try {
       const conn = await evoConnectionState({ baseUrl, instance, apiKey })
       state = conn.state
@@ -97,10 +120,47 @@ export async function POST(request: Request) {
         '[evolution/connect] connection check failed:',
         err instanceof Error ? err.message : err,
       )
-      return NextResponse.json(
-        { error: 'Could not reach the Evolution instance. Check the URL and API key.' },
-        { status: 502 },
-      )
+      const status = err instanceof EvolutionApiError ? err.status : 0
+      if (status === 404) {
+        // Instance not found on the server: create it (global key only).
+        try {
+          await evoCreateInstance({ baseUrl, instance, apiKey })
+          created = true
+          state = 'close'
+        } catch (createErr) {
+          console.warn(
+            '[evolution/connect] create instance failed:',
+            createErr instanceof Error ? createErr.message : createErr,
+          )
+          const createStatus = createErr instanceof EvolutionApiError ? createErr.status : 0
+          return NextResponse.json(
+            createStatus === 401 || createStatus === 403
+              ? {
+                  error:
+                    'The instance does not exist and this API key cannot create it. Use the server global API key.',
+                  code: 'create_needs_global_key',
+                }
+              : {
+                  error: 'The instance does not exist and could not be created.',
+                  code: 'create_failed',
+                },
+            { status: 502 },
+          )
+        }
+      } else if (status === 401 || status === 403) {
+        return NextResponse.json(
+          { error: 'Evolution rejected the API key.', code: 'unauthorized' },
+          { status: 502 },
+        )
+      } else {
+        return NextResponse.json(
+          {
+            error: 'Could not reach the Evolution instance. Check the URL and API key.',
+            code: 'unreachable',
+          },
+          { status: 502 },
+        )
+      }
     }
 
     // Preserve an existing webhook_secret so re-saving keeps the URL stable.
@@ -150,12 +210,16 @@ export async function POST(request: Request) {
 
     if (upsertErr) {
       console.error('[evolution/connect] upsert failed:', upsertErr)
-      return NextResponse.json({ error: 'Failed to save configuration' }, { status: 500 })
+      return NextResponse.json(
+        { error: 'Failed to save configuration', code: 'save_failed' },
+        { status: 500 },
+      )
     }
 
     return NextResponse.json({
       connected: state === 'open',
       state,
+      created,
       webhook_set: webhookSet,
       webhook_url: webhookUrl,
       ...(webhookError ? { webhook_error: webhookError } : {}),
@@ -176,7 +240,10 @@ export async function DELETE() {
       .delete()
       .eq('account_id', ctx.accountId)
     if (error) {
-      return NextResponse.json({ error: 'Failed to disconnect' }, { status: 500 })
+      return NextResponse.json(
+        { error: 'Failed to disconnect', code: 'disconnect_failed' },
+        { status: 500 },
+      )
     }
     return NextResponse.json({ success: true })
   } catch (err) {

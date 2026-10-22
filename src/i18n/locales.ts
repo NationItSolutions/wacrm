@@ -4,10 +4,10 @@
 // Single source of truth for the language pack list. `request.ts`
 // resolves the active locale from (1) the `wacrm-locale` cookie set by
 // the Appearance language selector, (2) the NEXT_PUBLIC_APP_LOCALE env
-// default, then (3) English. Each locale maps to `messages/<locale>.json`.
+// default, then (3) DEFAULT_LOCALE (es-419). Each locale maps to `messages/<locale>.json`.
 // ============================================================
 
-export const DEFAULT_LOCALE = 'en'
+export const DEFAULT_LOCALE = 'es-419'
 
 export const SUPPORTED_LOCALES = ['en', 'es-419'] as const
 export type AppLocale = (typeof SUPPORTED_LOCALES)[number]

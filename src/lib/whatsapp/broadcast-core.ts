@@ -123,6 +123,17 @@ export async function createBroadcast(
       400
     );
   }
+  // Broadcasts are sent as Meta-approved templates. On an Evolution
+  // (unofficial, Baileys) number a mass send is also the fastest way to
+  // get the number banned, so it is refused outright rather than
+  // crashing on the missing Meta token.
+  if (config.provider === 'evolution') {
+    throw new BroadcastError(
+      'provider_not_supported',
+      'Broadcasts require the official Meta WhatsApp Cloud API. They are disabled for Evolution API numbers.',
+      400
+    );
+  }
   const accessToken = decrypt(config.access_token);
 
   // Template row (once) for header/button components; guard a

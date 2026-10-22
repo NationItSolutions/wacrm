@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import { CheckCircle2, Loader2, XCircle, Link2, RotateCcw } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
@@ -17,6 +18,21 @@ import {
 
 const MASKED = '••••••••••••••••';
 
+/** Error codes returned by /api/whatsapp/evolution/connect (see route.ts). */
+const KNOWN_ERROR_CODES = new Set([
+  'missing_fields',
+  'invalid_instance_name',
+  'url_not_allowed',
+  'unreachable',
+  'unauthorized',
+  'create_needs_global_key',
+  'create_failed',
+  'save_failed',
+  'disconnect_failed',
+]);
+
+const KNOWN_STATES = new Set(['open', 'connecting', 'close', 'unknown']);
+
 interface EvolutionRow {
   base_url?: string | null;
   instance_name?: string | null;
@@ -27,6 +43,7 @@ interface EvolutionRow {
 }
 
 export function EvolutionConfig({ accountId }: { accountId: string | null }) {
+  const t = useTranslations('Settings.evolution');
   const supabase = createClient();
 
   const [baseUrl, setBaseUrl] = useState('');
@@ -40,6 +57,11 @@ export function EvolutionConfig({ accountId }: { accountId: string | null }) {
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const connected = state === 'open';
+  const stateLabel = KNOWN_STATES.has(state) ? t(`state.${state}`) : state;
+
+  /** Translate an API error body ({ error, code }) for a toast. */
+  const apiError = (json: { error?: string; code?: string }, fallback: string) =>
+    json.code && KNOWN_ERROR_CODES.has(json.code) ? t(`errors.${json.code}`) : json.error || fallback;
 
   const load = useCallback(
     async (acct: string) => {
@@ -85,22 +107,22 @@ export function EvolutionConfig({ accountId }: { accountId: string | null }) {
       if (json.connected) {
         stopPolling();
         setQrCode(null);
-        toast.success('WhatsApp connected via Evolution.');
+        toast.success(t('toastConnected'));
       }
     } catch {
       // transient; keep polling
     }
-  }, [stopPolling]);
+  }, [stopPolling, t]);
 
   useEffect(() => stopPolling, [stopPolling]);
 
   const handleConnect = async () => {
     if (!baseUrl.trim() || !instanceName.trim()) {
-      toast.error('Base URL and instance name are required.');
+      toast.error(t('toastRequiredFields'));
       return;
     }
     if (!apiKeySaved && !apiKey.trim()) {
-      toast.error('API key is required.');
+      toast.error(t('toastApiKeyRequired'));
       return;
     }
     setConnecting(true);
@@ -118,38 +140,39 @@ export function EvolutionConfig({ accountId }: { accountId: string | null }) {
       });
       const json = await res.json();
       if (!res.ok) {
-        toast.error(json.error || 'Connection failed.');
+        toast.error(apiError(json, t('toastConnectionFailed')));
         return;
       }
       setState(json.state ?? 'unknown');
       setApiKeySaved(true);
       if (apiKey && apiKey !== MASKED) setApiKey(MASKED);
       if (json.webhook_set === false) {
-        toast.warning('Connected, but could not set the webhook automatically. Retry, or set it manually on the instance.');
+        toast.warning(t('toastWebhookFailed'));
       }
       if (json.connected) {
-        toast.success('WhatsApp connected via Evolution.');
+        toast.success(t('toastConnected'));
         setQrCode(null);
       } else {
-        toast.message('Saved. Scan the QR code to finish connecting.');
+        toast.message(json.created ? t('toastInstanceCreated') : t('toastScanQr'));
         // Kick off polling for state + QR.
         stopPolling();
         await pollState();
         pollRef.current = setInterval(pollState, 3000);
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Connection failed.');
+      toast.error(err instanceof Error ? err.message : t('toastConnectionFailed'));
     } finally {
       setConnecting(false);
     }
   };
 
   const handleDisconnect = async () => {
-    if (!confirm('Disconnect this Evolution instance from ConstruSuite?')) return;
+    if (!confirm(t('confirmDisconnect'))) return;
     try {
       const res = await fetch('/api/whatsapp/evolution/connect', { method: 'DELETE' });
       if (!res.ok) {
-        toast.error('Failed to disconnect.');
+        const json = await res.json().catch(() => ({}));
+        toast.error(apiError(json, t('toastDisconnectFailed')));
         return;
       }
       stopPolling();
@@ -157,9 +180,9 @@ export function EvolutionConfig({ accountId }: { accountId: string | null }) {
       setQrCode(null);
       setApiKey('');
       setApiKeySaved(false);
-      toast.success('Disconnected.');
+      toast.success(t('toastDisconnected'));
     } catch {
-      toast.error('Failed to disconnect.');
+      toast.error(t('toastDisconnectFailed'));
     }
   };
 
@@ -176,53 +199,51 @@ export function EvolutionConfig({ accountId }: { accountId: string | null }) {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Link2 className="size-5" />
-              Evolution API connection
+              {t('title')}
             </CardTitle>
-            <CardDescription>
-              Connect ConstruSuite to your existing Evolution API server. ConstruSuite will
-              register its inbound webhook on the instance automatically.
-            </CardDescription>
+            <CardDescription>{t('description')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center gap-2 text-sm">
-              <span className="text-muted-foreground">Status:</span>
+              <span className="text-muted-foreground">{t('statusLabel')}</span>
               {connected ? (
                 <span className="inline-flex items-center gap-1 text-green-500">
-                  <CheckCircle2 className="size-4" /> Connected (open)
+                  <CheckCircle2 className="size-4" /> {t('statusConnected')}
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-1 text-amber-500">
-                  <XCircle className="size-4" /> {loading ? 'Loading…' : state}
+                  <XCircle className="size-4" /> {loading ? t('statusLoading') : stateLabel}
                 </span>
               )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="evo-base-url">Base URL</Label>
+              <Label htmlFor="evo-base-url">{t('baseUrl')}</Label>
               <Input
                 id="evo-base-url"
-                placeholder="https://evolution.your-server.com"
+                placeholder={t('baseUrlPlaceholder')}
                 value={baseUrl}
                 onChange={(e) => setBaseUrl(e.target.value)}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="evo-instance">Instance name</Label>
+              <Label htmlFor="evo-instance">{t('instanceName')}</Label>
               <Input
                 id="evo-instance"
-                placeholder="my-instance"
+                placeholder={t('instancePlaceholder')}
                 value={instanceName}
                 onChange={(e) => setInstanceName(e.target.value)}
               />
+              <p className="text-xs text-muted-foreground">{t('instanceHint')}</p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="evo-api-key">API key</Label>
+              <Label htmlFor="evo-api-key">{t('apiKey')}</Label>
               <Input
                 id="evo-api-key"
                 type="password"
-                placeholder={apiKeySaved ? MASKED : 'Evolution global or instance API key'}
+                placeholder={apiKeySaved ? MASKED : t('apiKeyPlaceholder')}
                 value={apiKey}
                 onChange={(e) => {
                   setApiKey(e.target.value);
@@ -235,26 +256,24 @@ export function EvolutionConfig({ accountId }: { accountId: string | null }) {
                   }
                 }}
               />
-              <p className="text-xs text-muted-foreground">
-                Stored encrypted (AES-256-GCM). Re-enter to change it.
-              </p>
+              <p className="text-xs text-muted-foreground">{t('apiKeyHint')}</p>
             </div>
 
             <div className="flex flex-wrap gap-2">
               <Button onClick={handleConnect} disabled={connecting}>
                 {connecting ? (
                   <>
-                    <Loader2 className="size-4 animate-spin" /> Connecting…
+                    <Loader2 className="size-4 animate-spin" /> {t('connecting')}
                   </>
                 ) : (
                   <>
-                    <Link2 className="size-4" /> {connected ? 'Reconnect / Save' : 'Connect'}
+                    <Link2 className="size-4" /> {connected ? t('reconnect') : t('connect')}
                   </>
                 )}
               </Button>
               {(connected || apiKeySaved) && (
                 <Button variant="outline" onClick={handleDisconnect}>
-                  <RotateCcw className="size-4" /> Disconnect
+                  <RotateCcw className="size-4" /> {t('disconnect')}
                 </Button>
               )}
             </div>
@@ -264,17 +283,14 @@ export function EvolutionConfig({ accountId }: { accountId: string | null }) {
         {qrSrc && !connected && (
           <Card>
             <CardHeader>
-              <CardTitle>Scan to connect</CardTitle>
-              <CardDescription>
-                Open WhatsApp → Linked devices → Link a device, and scan this code.
-                It refreshes automatically.
-              </CardDescription>
+              <CardTitle>{t('scanTitle')}</CardTitle>
+              <CardDescription>{t('scanDescription')}</CardDescription>
             </CardHeader>
             <CardContent>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={qrSrc}
-                alt="Evolution QR code"
+                alt={t('qrAlt')}
                 className="mx-auto size-64 rounded-lg bg-white p-2"
               />
             </CardContent>
@@ -284,16 +300,13 @@ export function EvolutionConfig({ accountId }: { accountId: string | null }) {
 
       <Card className="h-fit">
         <CardHeader>
-          <CardTitle>How it works</CardTitle>
+          <CardTitle>{t('howTitle')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3 text-sm text-muted-foreground">
-          <p>1. Paste your Evolution server URL, the instance name, and its API key.</p>
-          <p>2. Click Connect — ConstruSuite verifies the instance and registers its webhook.</p>
-          <p>3. If the instance isn&apos;t linked yet, scan the QR code with your phone.</p>
-          <p>
-            Free-form messaging, media, stickers, replies, reactions and deletes are
-            supported. Meta-approved templates are not used with Evolution.
-          </p>
+          <p>{t('howStep1')}</p>
+          <p>{t('howStep2')}</p>
+          <p>{t('howStep3')}</p>
+          <p>{t('howStep4')}</p>
         </CardContent>
       </Card>
     </div>

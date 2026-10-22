@@ -6,7 +6,7 @@ export default getRequestConfig(async () => {
   // Resolve the active locale, most specific first:
   //   1. the `wacrm-locale` cookie (set by the Appearance language picker),
   //   2. the NEXT_PUBLIC_APP_LOCALE deployment default,
-  //   3. English.
+  //   3. DEFAULT_LOCALE (Spanish, es-419).
   // Only locales in SUPPORTED_LOCALES are honoured, so a stale/hostile
   // cookie can't point the dynamic import at an arbitrary path.
   const cookieStore = await cookies();

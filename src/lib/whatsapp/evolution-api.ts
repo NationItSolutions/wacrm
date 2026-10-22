@@ -50,6 +50,21 @@ interface EvolutionErrorBody {
   response?: { message?: unknown }
 }
 
+/**
+ * Error thrown for any non-2xx Evolution response. Keeps the
+ * `Evolution API error: …` message prefix (callers pattern-match on it)
+ * and adds the HTTP status so callers can tell "instance does not
+ * exist" (404) apart from auth (401/403) or network problems.
+ */
+export class EvolutionApiError extends Error {
+  readonly status: number
+  constructor(message: string, status: number) {
+    super(`Evolution API error: ${message}`)
+    this.name = 'EvolutionApiError'
+    this.status = status
+  }
+}
+
 async function throwEvolutionError(response: Response, fallback: string): Promise<never> {
   let message = fallback
   try {
@@ -60,7 +75,7 @@ async function throwEvolutionError(response: Response, fallback: string): Promis
   } catch {
     // body wasn't JSON — keep the fallback
   }
-  throw new Error(`Evolution API error: ${message}`)
+  throw new EvolutionApiError(message, response.status)
 }
 
 async function evoFetch(
@@ -120,7 +135,7 @@ export interface EvoSendTextArgs extends EvolutionBinding {
 }
 export async function evoSendText(args: EvoSendTextArgs): Promise<EvolutionSendResult> {
   const { baseUrl, instance, apiKey, to, text, quoted } = args
-  const data = await evoFetch({ baseUrl, instance, apiKey }, `/message/sendText/${instance}`, {
+  const data = await evoFetch({ baseUrl, instance, apiKey }, `/message/sendText/${encodeURIComponent(instance)}`, {
     method: 'POST',
     body: { number: toEvolutionNumber(to), text, ...(quoted ? { quoted } : {}) },
   })
@@ -139,7 +154,7 @@ export interface EvoSendMediaArgs extends EvolutionBinding {
 }
 export async function evoSendMedia(args: EvoSendMediaArgs): Promise<EvolutionSendResult> {
   const { baseUrl, instance, apiKey, to, mediatype, media, caption, fileName, quoted } = args
-  const data = await evoFetch({ baseUrl, instance, apiKey }, `/message/sendMedia/${instance}`, {
+  const data = await evoFetch({ baseUrl, instance, apiKey }, `/message/sendMedia/${encodeURIComponent(instance)}`, {
     method: 'POST',
     body: {
       number: toEvolutionNumber(to),
@@ -162,7 +177,7 @@ export async function evoSendAudio(args: EvoSendAudioArgs): Promise<EvolutionSen
   const { baseUrl, instance, apiKey, to, audio, quoted } = args
   const data = await evoFetch(
     { baseUrl, instance, apiKey },
-    `/message/sendWhatsAppAudio/${instance}`,
+    `/message/sendWhatsAppAudio/${encodeURIComponent(instance)}`,
     { method: 'POST', body: { number: toEvolutionNumber(to), audio, ...(quoted ? { quoted } : {}) } },
   )
   return { messageId: extractMessageId(data) }
@@ -175,7 +190,7 @@ export interface EvoSendStickerArgs extends EvolutionBinding {
 }
 export async function evoSendSticker(args: EvoSendStickerArgs): Promise<EvolutionSendResult> {
   const { baseUrl, instance, apiKey, to, sticker, quoted } = args
-  const data = await evoFetch({ baseUrl, instance, apiKey }, `/message/sendSticker/${instance}`, {
+  const data = await evoFetch({ baseUrl, instance, apiKey }, `/message/sendSticker/${encodeURIComponent(instance)}`, {
     method: 'POST',
     body: { number: toEvolutionNumber(to), sticker, ...(quoted ? { quoted } : {}) },
   })
@@ -190,7 +205,7 @@ export interface EvoSendReactionArgs extends EvolutionBinding {
 }
 export async function evoSendReaction(args: EvoSendReactionArgs): Promise<EvolutionSendResult> {
   const { baseUrl, instance, apiKey, to, targetMessageId, targetFromMe, reaction } = args
-  const data = await evoFetch({ baseUrl, instance, apiKey }, `/message/sendReaction/${instance}`, {
+  const data = await evoFetch({ baseUrl, instance, apiKey }, `/message/sendReaction/${encodeURIComponent(instance)}`, {
     method: 'POST',
     body: {
       key: { remoteJid: toRemoteJid(to), fromMe: targetFromMe, id: targetMessageId },
@@ -209,7 +224,7 @@ export async function evoDeleteMessage(args: EvoDeleteMessageArgs): Promise<void
   const { baseUrl, instance, apiKey, to, targetMessageId, fromMe } = args
   await evoFetch(
     { baseUrl, instance, apiKey },
-    `/chat/deleteMessageForEveryone/${instance}`,
+    `/chat/deleteMessageForEveryone/${encodeURIComponent(instance)}`,
     {
       method: 'DELETE',
       body: { id: targetMessageId, remoteJid: toRemoteJid(to), fromMe },
@@ -222,7 +237,7 @@ export interface EvoMarkReadArgs extends EvolutionBinding {
 }
 export async function evoMarkRead(args: EvoMarkReadArgs): Promise<void> {
   const { baseUrl, instance, apiKey, key } = args
-  await evoFetch({ baseUrl, instance, apiKey }, `/chat/markMessageAsRead/${instance}`, {
+  await evoFetch({ baseUrl, instance, apiKey }, `/chat/markMessageAsRead/${encodeURIComponent(instance)}`, {
     method: 'POST',
     body: { readMessages: [{ remoteJid: key.remoteJid, fromMe: key.fromMe, id: key.id }] },
   })
@@ -248,7 +263,7 @@ export async function evoGetBase64FromMediaMessage(
   const { baseUrl, instance, apiKey, key, convertToMp4 } = args
   const data = (await evoFetch(
     { baseUrl, instance, apiKey },
-    `/chat/getBase64FromMediaMessage/${instance}`,
+    `/chat/getBase64FromMediaMessage/${encodeURIComponent(instance)}`,
     { method: 'POST', body: { message: { key }, convertToMp4: convertToMp4 ?? false } },
   )) as Record<string, unknown>
   return {
@@ -266,7 +281,7 @@ export interface EvoConnectionState {
   state: string // open | connecting | close | unknown
 }
 export async function evoConnectionState(binding: EvolutionBinding): Promise<EvoConnectionState> {
-  const data = (await evoFetch(binding, `/instance/connectionState/${binding.instance}`, {
+  const data = (await evoFetch(binding, `/instance/connectionState/${encodeURIComponent(binding.instance)}`, {
     method: 'GET',
   })) as Record<string, unknown>
   const inner = (data.instance as Record<string, unknown> | undefined) ?? data
@@ -279,7 +294,7 @@ export interface EvoConnectResult {
   pairingCode?: string
 }
 export async function evoConnect(binding: EvolutionBinding): Promise<EvoConnectResult> {
-  const data = (await evoFetch(binding, `/instance/connect/${binding.instance}`, {
+  const data = (await evoFetch(binding, `/instance/connect/${encodeURIComponent(binding.instance)}`, {
     method: 'GET',
   })) as Record<string, unknown>
   const qr = (data.qrcode as Record<string, unknown> | undefined) ?? data
@@ -293,6 +308,11 @@ export async function evoConnect(binding: EvolutionBinding): Promise<EvoConnectR
 export interface EvoCreateInstanceArgs extends EvolutionBinding {
   token?: string
 }
+/**
+ * Create a Baileys instance (needs the server's GLOBAL api key). Groups
+ * are ignored at the source: wacrm only handles 1:1 chats, so there is
+ * no point paying for group traffic on the webhook.
+ */
 export async function evoCreateInstance(args: EvoCreateInstanceArgs): Promise<unknown> {
   const { baseUrl, instance, apiKey, token } = args
   return evoFetch({ baseUrl, instance, apiKey }, `/instance/create`, {
@@ -301,6 +321,7 @@ export async function evoCreateInstance(args: EvoCreateInstanceArgs): Promise<un
       instanceName: instance,
       integration: 'WHATSAPP-BAILEYS',
       qrcode: true,
+      groupsIgnore: true,
       ...(token ? { token } : {}),
     },
   })
@@ -312,15 +333,18 @@ export interface EvoSetWebhookArgs extends EvolutionBinding {
 }
 export async function evoSetWebhook(args: EvoSetWebhookArgs): Promise<unknown> {
   const { baseUrl, instance, apiKey, url, events } = args
-  // v2 nested shape. `webhookByEvents:false` = single URL for all events;
-  // `base64:true` asks Evolution to inline media as base64 in webhooks.
-  return evoFetch({ baseUrl, instance, apiKey }, `/webhook/set/${instance}`, {
+  // v2 nested shape. v2.2+ reads `byEvents` / `base64`; v2.0–2.1 read
+  // `webhookByEvents` / `webhookBase64`. Send both so either version
+  // gets a single URL for all events with media inlined as base64.
+  return evoFetch({ baseUrl, instance, apiKey }, `/webhook/set/${encodeURIComponent(instance)}`, {
     method: 'POST',
     body: {
       webhook: {
         enabled: true,
         url,
         events,
+        byEvents: false,
+        base64: true,
         webhookByEvents: false,
         webhookBase64: true,
       },

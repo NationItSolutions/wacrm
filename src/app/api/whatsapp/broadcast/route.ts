@@ -150,6 +150,18 @@ export async function POST(request: Request) {
       )
     }
 
+    // Template broadcasts are Meta-only (see broadcast-core.ts).
+    if (config.provider === 'evolution') {
+      return NextResponse.json(
+        {
+          error:
+            'Broadcasts require the official Meta WhatsApp Cloud API. They are disabled for Evolution API numbers.',
+          code: 'provider_not_supported',
+        },
+        { status: 400 }
+      )
+    }
+
     const accessToken = decrypt(config.access_token)
 
     // Load the template row once so sendTemplateMessage can build
